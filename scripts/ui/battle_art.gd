@@ -83,6 +83,11 @@ static func draw_blast(ci: CanvasItem, pos: Vector2, radius: float, k: float, ki
 	if kind == &"bounce":
 		ci.draw_arc(pos, radius * (0.3 + 0.7 * k), 0.0, TAU, 24, Color(Blueprint.INK, 0.6 * a), w)
 		return
+	if kind == &"muzzle":
+		# Enemy muzzle flash: the moment its position gives itself away.
+		ci.draw_circle(pos, radius * (0.4 + 1.2 * k), Color(Blueprint.RED, 0.7 * a))
+		ci.draw_arc(pos, radius * (1.0 + 2.5 * k), 0.0, TAU, 32, Color(Blueprint.RED, a), w * 1.5)
+		return
 	var hot := Blueprint.AMBER
 	if k < 0.25:
 		ci.draw_circle(pos, radius * (0.2 + 1.6 * k), Color(Color.WHITE, 0.8 * (1.0 - k * 4.0)))

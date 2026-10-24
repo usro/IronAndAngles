@@ -209,6 +209,10 @@ func _destroy(t: BattleTarget) -> void:
 	EventBus.target_destroyed.emit(t.id)
 
 
+func _battle_kill_enemy_gun() -> void:
+	_sim().damage_enemy_gun(_sim().enemy_health + 1.0)
+
+
 func _battle_lose() -> void:
 	for m in _sim().mounts:
 		m.health = 0.0
@@ -237,6 +241,21 @@ func _battle_auto_aim() -> void:
 		m.elevation_deg = aim.elevation_deg
 		m.charge = aim.charge
 		return
+
+
+## Dials the selected weapon onto the enemy gun once it is spotted.
+func _battle_auto_aim_gun() -> void:
+	var sim := _sim()
+	var m := sim.selected_mount()
+	if m == null or not sim.enemy_spotted or not sim.enemy_gun_alive():
+		return
+	var at := sim.enemy_gun_rect().get_center()
+	if m.is_orbital():
+		m.designated_x_m = at.x
+		return
+	var aim := AimSolver.solve(m.weapon, sim.ammo_table[m.ammo_id], m.muzzle_m(), at, sim.weather)
+	m.elevation_deg = aim.elevation_deg
+	m.charge = aim.charge
 
 
 func _set_time_scale(s: float) -> void:
@@ -302,7 +321,8 @@ func _rebuild() -> void:
 
 	if _context == "battle":
 		_section("BATTLE")
-		_row([["Auto-aim", _battle_auto_aim], ["Kill 1 target", _battle_kill_one]])
+		_row([["Auto-aim target", _battle_auto_aim], ["Auto-aim gun", _battle_auto_aim_gun]])
+		_row([["Kill 1 target", _battle_kill_one], ["Kill enemy gun", _battle_kill_enemy_gun]])
 		_row([["Win now", _battle_win], ["Lose now", _battle_lose], ["Heal + hide", _battle_heal]])
 		_toggle("God mode (no battery damage)", "god_mode")
 		_toggle("Instant reload", "instant_reload")

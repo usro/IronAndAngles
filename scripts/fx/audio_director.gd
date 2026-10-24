@@ -307,6 +307,8 @@ func _connect_events() -> void:
 	EventBus.target_hit.connect(_on_target_hit)
 	EventBus.target_destroyed.connect(_on_target_destroyed)
 	EventBus.battery_damaged.connect(_on_battery_damaged)
+	EventBus.enemy_gun_hit.connect(_on_enemy_gun_hit)
+	EventBus.enemy_gun_destroyed.connect(_on_enemy_gun_destroyed)
 	EventBus.battery_revealed.connect(_on_battery_revealed)
 	EventBus.battle_ended.connect(_on_battle_ended)
 	EventBus.money_changed.connect(_on_money_changed)
@@ -374,6 +376,16 @@ func _on_target_hit(target_id: StringName, damage: float) -> void:
 
 func _on_target_destroyed(target_id: StringName) -> void:
 	play_at(&"target_collapse", _target_position(target_id))
+
+
+func _on_enemy_gun_hit(damage: float) -> void:
+	var sim := _battle_sim()
+	if sim:
+		play_at(&"target_hit", sim.enemy_origin_m, clampf(-6.0 + damage / 20.0, -6.0, 2.0))
+
+
+func _on_enemy_gun_destroyed(position: Vector2) -> void:
+	play_at(&"target_collapse", position)
 
 
 func _on_battery_damaged(weapon_id: StringName, damage: float) -> void:

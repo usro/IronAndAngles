@@ -85,6 +85,14 @@ There's no crosshair. You **dial in angle and charge**, fire, and **correct from
 - After each shot the weapon **reloads** (the trebuchet takes 12 s). The reload bar fills up and then shows `READY [Space]`.
 - Every shot raises the **Revealed** meter, and misses raise it more. Past the red **return fire** mark (10%), the enemy starts **firing back** (red shells), and gets more accurate as Revealed rises. If all your weapons are destroyed, you lose.
 
+### Counter-battery: the duel
+
+- The enemy has **one gun** somewhere behind the targets. It's **hidden** until it fires: its first shot's **red muzzle flash** gives its position away. (Hitting it by luck also reveals it.) The HUD shows `ENEMY GUN: HIDDEN → SPOTTED → DESTROYED`.
+- Once spotted, it's drawn with a health bar and **you can shoot it**. It has about as much HP as one of your own guns, so in later eras **two good hits** usually finish it.
+- **Destroying it silences return fire for the rest of the battle.** You still need to destroy the contract targets to win.
+- **Counter-battery bonus:** if you destroy the gun *and* win, the client adds **10% of the payout**.
+- In later eras its shells have big blasts, so it often hits on its first or second shot. When it fires, **switch to the gun and make your first shot count**.
+
 ### Winning and losing
 
 - **Victory:** every target is destroyed. You're paid the contract payout.

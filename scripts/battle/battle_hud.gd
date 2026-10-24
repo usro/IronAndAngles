@@ -13,6 +13,7 @@ var _pips: HudTargetPips
 var _wind: HudWindVane
 var _weather_label: Label
 var _reveal: HudMeter
+var _enemy_label: Label
 var _ledger_label: Label
 var _weapon_label: Label
 var _weapon_index: Label
@@ -64,6 +65,8 @@ func _ready() -> void:
 	_reveal.label = "REVEALED"
 	_reveal.custom_minimum_size = Vector2(240, 42)
 	cbox.add_child(_reveal)
+	_enemy_label = _label(cbox, &"MonoLabel")
+	_enemy_label.add_theme_font_size_override("font_size", 12)
 	_ledger_label = _label(cbox, &"MonoLabel")
 	_ledger_label.add_theme_font_size_override("font_size", 12)
 
@@ -162,6 +165,9 @@ func refresh(sim: BattleSim) -> void:
 	_reveal.marker = SimpleEnemyBrain.HOLD_BELOW_REVEAL if sim.enemy_brain is SimpleEnemyBrain else -1.0
 	_reveal.marker_label = "RETURN FIRE"
 	_reveal.queue_redraw()
+	_enemy_label.text = _enemy_text(sim)
+	_enemy_label.add_theme_color_override("font_color", Blueprint.TEXT_DIM if not sim.enemy_gun_alive()
+		else (Blueprint.RED if sim.enemy_spotted else Blueprint.AMBER))
 	_ledger_label.text = "SHELLS %d  HIT %d   SPENT %s\nFUNDS %s" % [sim.result.shells_fired, sim.result.shells_hit,
 		Blueprint.money(sim.result.ammo_spent), Blueprint.money(sim.player.money)]
 
@@ -288,3 +294,13 @@ static func _label(parent: Node, variation: StringName) -> Label:
 static func _clock(seconds: float) -> String:
 	var s := int(seconds)
 	return "%02d:%02d" % [s / 60, s % 60]
+
+
+static func _enemy_text(sim: BattleSim) -> String:
+	if sim.enemy_weapon == null:
+		return "ENEMY GUN: NONE"
+	if not sim.enemy_gun_alive():
+		return "ENEMY GUN: DESTROYED  +%d%% BONUS ON VICTORY" % roundi(BattleSim.COUNTER_BATTERY_BONUS * 100.0)
+	if not sim.enemy_spotted:
+		return "ENEMY GUN: HIDDEN (fires → spotted)"
+	return "ENEMY GUN: SPOTTED  %d / %d HP" % [ceili(sim.enemy_health), ceili(sim.enemy_max_health)]

@@ -232,7 +232,7 @@ func _camera_rect() -> Rect2:
 	var rect: Rect2
 	if _overview:
 		rect = Rect2(battery, Vector2.ZERO).expand(sim.target_zone_center_m())
-		if sim.enemy_origin_m != Vector2.INF:
+		if sim.enemy_origin_m != Vector2.INF and sim.enemy_spotted:
 			rect = rect.expand(sim.enemy_origin_m)
 		rect = rect.grow(CAMERA_MARGIN_M)
 	elif not sim.flights.is_empty() or _hold_left > 0.0 and not _trails.is_empty():
@@ -316,10 +316,15 @@ func _draw_overlay() -> void:
 			_overlay.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-0.6, -0.9) * px,
 				tip + Vector2(0.6, -0.9) * px]), SELECTED_COLOR)
 
-	if sim.enemy_origin_m != Vector2.INF and sim.enemy_weapon:
+	# The enemy gun is only drawn once spotted (first muzzle flash, or a hit on it).
+	if sim.enemy_origin_m != Vector2.INF and sim.enemy_weapon and sim.enemy_spotted:
 		var ground := sim.enemy_origin_m + Vector2(0.0, 2.0)
-		LauncherArt.draw_data(_overlay, sim.enemy_weapon, ground * px, px, 50.0, ENEMY_SHELL_COLOR,
-			BattleArt.ENEMY_FILL, line_w, -1)
+		var alive := sim.enemy_gun_alive()
+		LauncherArt.draw_data(_overlay, sim.enemy_weapon, ground * px, px, 50.0 if alive else 15.0,
+			ENEMY_SHELL_COLOR if alive else DEAD_COLOR, BattleArt.ENEMY_FILL, line_w, -1)
+		var r := _px_rect(sim.enemy_gun_rect())
+		BattleArt.draw_health(_overlay, Rect2(r.position - Vector2(0, 2.0 * px), r.size),
+			sim.enemy_health / maxf(sim.enemy_max_health, 1.0), 0.35 * px, ENEMY_SHELL_COLOR)
 
 	var sel := sim.selected_mount()
 	if sel and sel.is_orbital() and sel.is_alive():

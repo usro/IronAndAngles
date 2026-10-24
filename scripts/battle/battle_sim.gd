@@ -23,6 +23,11 @@ const ENEMY_RELOAD_FACTOR := 2.2
 const ENEMY_RELOAD_PER_DIFFICULTY := 0.25
 ## Seconds before the enemy brain is asked again after it held fire.
 const ENEMY_RETRY_S := 1.0
+## The enemy gun has this share of its weapon's max_health. It can be shot once it is spotted
+## (or by a lucky shell before that); destroying it silences return fire.
+const ENEMY_GUN_HEALTH_SCALE := 1.0
+## Destroying the enemy gun adds this share of the payout on victory.
+const COUNTER_BATTERY_BONUS := 0.1
 ## Battery weapons stand this far apart (closer if many share the pad).
 const MOUNT_SPACING_M := 5.0
 const MAX_FLIGHT_TIME_S := 60.0
@@ -62,6 +67,10 @@ var enemy_ammo: AmmoData
 var enemy_origin_m: Vector2 = Vector2.INF
 var enemy_reload_left: float = 0.0
 var enemy_last_impact_m: Vector2 = Vector2.INF
+var enemy_health := 0.0
+var enemy_max_health := 0.0
+## The enemy gun is hidden until its first muzzle flash (or until a shell hits it).
+var enemy_spotted := false
 ## Share of the enemy ammo's damage that reaches the battery.
 var enemy_damage_scale := ENEMY_DAMAGE_SCALE
 
@@ -202,7 +211,37 @@ func apply_blast(ammo: AmmoData, position_m: Vector2, scale: float = 1.0, enemy:
 		if t.is_destroyed():
 			result.targets_destroyed += 1
 			EventBus.target_destroyed.emit(t.id)
+	if enemy_gun_alive():
+		var dmg := BattleRules.blast_damage(ammo, BattleRules.distance_to_rect(position_m, enemy_gun_rect()),
+			weather.rain_intensity) * scale
+		total += damage_enemy_gun(dmg)
 	return total
+
+
+func enemy_gun_alive() -> bool:
+	return enemy_weapon != null and enemy_health > 0.0
+
+
+func enemy_gun_rect() -> Rect2:
+	var ground := Vector2(enemy_origin_m.x, enemy_origin_m.y + ENEMY_MUZZLE_HEIGHT_M)
+	return BattleRules.standing_rect(ground, BattleRules.MOUNT_SIZE_M)
+
+
+## Damages the enemy gun; returns the health it lost. A hit also gives its position away.
+func damage_enemy_gun(amount: float) -> float:
+	if not enemy_gun_alive() or amount <= 0.0:
+		return 0.0
+	var lost := minf(amount, enemy_health)
+	enemy_health -= lost
+	if not enemy_spotted:
+		enemy_spotted = true
+		EventBus.enemy_gun_spotted.emit(enemy_origin_m)
+	EventBus.enemy_gun_hit.emit(lost)
+	if enemy_health <= 0.0:
+		enemy_health = 0.0
+		result.enemy_gun_destroyed = true
+		EventBus.enemy_gun_destroyed.emit(enemy_origin_m)
+	return lost
 
 
 func targets_left() -> int:
@@ -302,6 +341,8 @@ func _setup_enemy(weapon_table: Dictionary) -> void:
 	var x := minf(map.target_zone_max_x_m + ENEMY_STANDOFF_M, bounds_m().end.x - 1.0)
 	enemy_origin_m = Vector2(x, map.surface_height_at(x) - ENEMY_MUZZLE_HEIGHT_M)
 	enemy_reload_left = enemy_reload_time()
+	enemy_max_health = enemy_weapon.max_health * ENEMY_GUN_HEALTH_SCALE
+	enemy_health = enemy_max_health
 	if brain_factory.is_valid():
 		enemy_brain = brain_factory.call()
 	else:
@@ -367,7 +408,7 @@ func _tick_strikes(delta: float) -> void:
 
 
 func _tick_enemy(delta: float) -> void:
-	if enemy_weapon == null or enemy_brain == null or targets_left() == 0:
+	if not enemy_gun_alive() or enemy_brain == null or targets_left() == 0:
 		return
 	enemy_reload_left -= delta
 	if enemy_reload_left > 0.0:
@@ -381,6 +422,10 @@ func _tick_enemy(delta: float) -> void:
 		enemy_origin_m, int(plan.get("facing", -1)), weather, _child_rng(_enemy_rng))
 	_configure(p)
 	_launch(p, _enemy_hit_test, true, false)
+	blast.emit(enemy_origin_m, 2.5, &"muzzle")
+	if not enemy_spotted:
+		enemy_spotted = true
+		EventBus.enemy_gun_spotted.emit(enemy_origin_m)
 
 
 func _situation() -> EnemyBrain.Situation:
@@ -493,6 +538,8 @@ func _settle_on_ground() -> void:
 		t.position_m.y = maxf(t.position_m.y, map.surface_height_at(t.position_m.x))
 	for m in mounts:
 		m.position_m.y = maxf(m.position_m.y, map.surface_height_at(m.position_m.x))
+	if enemy_origin_m != Vector2.INF:
+		enemy_origin_m.y = maxf(enemy_origin_m.y, map.surface_height_at(enemy_origin_m.x) - ENEMY_MUZZLE_HEIGHT_M)
 
 
 func _raise_reveal(level: float) -> void:
@@ -508,6 +555,8 @@ func _player_hit_test(from_m: Vector2, to_m: Vector2) -> Dictionary:
 	for t in targets:
 		if not t.is_destroyed():
 			rects.append(t.rect_m())
+	if enemy_gun_alive():
+		rects.append(enemy_gun_rect())
 	return _hit_with_boxes(from_m, to_m, rects)
 
 
@@ -573,6 +622,9 @@ func _end(victory: bool, reason: String) -> void:
 	end_reason = reason
 	result.victory = victory
 	result.payout_earned = contract.payout if victory else 0
+	if victory and result.enemy_gun_destroyed:
+		result.counter_battery_bonus = roundi(contract.payout * COUNTER_BATTERY_BONUS)
+		result.payout_earned += result.counter_battery_bonus
 	result.duration_s = elapsed
 	ended.emit(victory, reason)
 

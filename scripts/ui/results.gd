@@ -82,6 +82,8 @@ func _build_report(root: VBoxContainer, r: BattleResult) -> void:
 	var steps: Array[Dictionary] = []
 	if report:
 		_ledger_row(grid, "Payout", Blueprint.money(report.payout, true), Blueprint.LINE)
+		if r.counter_battery_bonus > 0:
+			_ledger_row(grid, "  incl. counter-battery bonus", Blueprint.money(r.counter_battery_bonus, true), Blueprint.AMBER)
 		_ledger_row(grid, "Auction price", Blueprint.money(-report.auction_price), Blueprint.RED)
 		_ledger_row(grid, "Shells fired", Blueprint.money(-report.ammo_spent), Blueprint.RED)
 		var margin_text := "%d%% margin" % roundi(report.margin() * 100.0) if report.payout > 0 else "no payout"
@@ -133,6 +135,7 @@ func _build_report(root: VBoxContainer, r: BattleResult) -> void:
 	_figure(figures, "Shells", "%d fired, %d hit (%d%% accuracy)" % [r.shells_fired, r.shells_hit,
 		roundi(r.accuracy() * 100.0)])
 	_figure(figures, "Targets", "%d destroyed" % r.targets_destroyed)
+	_figure(figures, "Enemy gun", "destroyed" if r.enemy_gun_destroyed else "survived")
 	_figure(figures, "Time", "%d:%02d" % [int(r.duration_s) / 60, int(r.duration_s) % 60])
 	var damage := 0.0
 	for id in r.damage_taken:

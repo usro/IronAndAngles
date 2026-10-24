@@ -29,6 +29,10 @@ signal target_destroyed(target_id: StringName)
 ## 0..1: how precisely enemy counter-battery knows the player's position.
 signal battery_revealed(reveal_level: float)
 signal battery_damaged(weapon_id: StringName, damage: float)
+## Counter-battery duel: the enemy gun's first muzzle flash (or first hit on it) gives it away.
+signal enemy_gun_spotted(position: Vector2)
+signal enemy_gun_hit(damage: float)
+signal enemy_gun_destroyed(position: Vector2)
 signal battle_ended(result: BattleResult)
 
 # --- Meta ---
