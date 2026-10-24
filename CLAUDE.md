@@ -6,3 +6,4 @@ Read `ARCHITECTURE.md` before changing anything: layers, units (meters, +y down)
 - Run tests: `<godot> --headless --path . -s res://tests/run_tests.gd` (append `-- <path filter>` to filter). They must pass before you finish.
 - After adding a new `class_name` script, run `<godot> --headless --path . --import` once so the class cache knows it.
 - Stay inside your session's folders (see ARCHITECTURE.md). Changes to `scripts/core/`, `scripts/data/` or `project.godot` must be additive, and you must mention them in your report.
+- Press F1 in a debug run for the debug menu (cheats, quick battle, win/lose, time scale); see ARCHITECTURE.md.

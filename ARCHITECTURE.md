@@ -165,6 +165,10 @@ Code in `scripts/fx/`, sounds in `audio/`, tests in `tests/fx/`. The `AudioDirec
 | `AudioDirector` | Schedules placed sounds by distance from the listener (the battery, `BattleSim.battery_position_m()` + 2 m), on the wall clock. Reads the battle scene's `sim` and `camera` (never writes): reload sounds when a mount becomes ready, a click on weapon/ammo change, the enemy gun's far boom and an incoming whistle timed to land with the shell (`sim.shell_launched`), victory/defeat stings (`sim.ended`). UI clicks/hovers attach to every `BaseButton` via `SceneTree.node_added`. On the dummy driver (headless) it schedules and logs to `played` but plays nothing. |
 | `AudioSettings`, `AudioSettingsPanel` | Master / effects / music sliders (0..1) saved in `user://audio_settings.cfg`; panel opened from the main menu. |
 
+## Debug menu
+
+`DebugMenu` autoload (`scripts/debug/debug_menu.gd`), **F1** or **`** to toggle, debug builds only (it frees itself in release exports). Campaign cheats everywhere (funds, refill ammo, repair, advance era / unlock all tech, give weapons, quick battle on a generated contract of the current era), region-map actions (reroll the week, win the selected lot and deploy), battle actions (auto-aim, kill one / all targets, lose, heal; god mode, instant reload and enemy-holds-fire toggles that persist across battles) and time scale. Cheats go through the normal models, so autosave records them; buttons take no keyboard focus so Space still fires.
+
 ## Running
 
 ```bash
