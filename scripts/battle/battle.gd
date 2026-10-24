@@ -22,6 +22,8 @@ const SPLIT_BATTERY_OFFSET_M := Vector2(20.0, -25.0)
 ## The observer looks a little past the zone's centre so a spotted enemy gun is in frame.
 const SPLIT_OBSERVER_OFFSET_M := Vector2(8.0, -25.0)
 const TRAIL_MAX_POINTS := 600
+## Landed player shells whose trail stays on screen (newest = the labelled "last shot").
+const KEPT_SHOT_TRAILS := 2
 const BLAST_LIFETIME_S := 0.8
 const WHEEL_STEP_DEG := 0.5
 const WHEEL_STEP_CHARGE := 0.01
@@ -69,8 +71,8 @@ var _trails: Dictionary = {}
 ## {"position": Vector2, "radius": float, "age": float, "kind": StringName}
 var _blasts: Array[Dictionary] = []
 ## The player's previous shell stays on screen as a faint reference for correcting the next shot.
-var _ghost_trail := PackedVector2Array()
-var _ghost_label := ""
+## Player shells in launch order; only the last KEPT_SHOT_TRAILS keep their trail once landed.
+var _player_shots: Array[ShellFlight] = []
 ## ShellFlight -> "elev / charge" text captured at launch (player shells only).
 var _launch_labels: Dictionary = {}
 ## Enemy ShellFlights, remembered at launch so their trails stay red after they settle.
@@ -248,9 +250,11 @@ func _on_shell_launched(flight: ShellFlight, enemy: bool) -> void:
 		_enemy_flights[flight] = true
 	_hold_left = CAMERA_HOLD_S
 	var m := sim.selected_mount()
+	if not enemy:
+		_player_shots.append(flight)
 	if not enemy and m and not m.is_orbital():
-		_launch_labels[flight] = ("last: %.2f° / %.1f%%" if m.weapon.is_direct_fire() else "last: %.1f° / %.1f%%") \
-			% [m.elevation_deg, m.charge * 100.0]
+		_launch_labels[flight] = ("last: %.2f° · CHG %d" if m.weapon.is_direct_fire() else "last: %.1f° · CHG %d") \
+			% [m.elevation_deg, m.charge_increment() + 1]
 		hud.note_shot(sim.selected, m.elevation_deg, m.charge)
 
 
@@ -272,16 +276,16 @@ func _finish() -> void:
 # --- Camera ---
 
 func _update_camera(delta: float) -> void:
+	if not sim.flights.is_empty():
+		_hold_left = CAMERA_HOLD_S
+	elif _hold_left > 0.0:
+		_hold_left -= delta
 	_observer.visible = _split_active()
 	_split_layer.visible = _split_active()
 	if _split_active():
 		_frame_split(1.0 - exp(-CAMERA_SMOOTHING * delta))
 		return
 	var rect := _camera_rect()
-	if not sim.flights.is_empty():
-		_hold_left = CAMERA_HOLD_S
-	elif _hold_left > 0.0:
-		_hold_left -= delta
 	var k := 1.0 - exp(-CAMERA_SMOOTHING * delta)
 	var target_zoom := _zoom_for(rect)
 	camera.position = camera.position.lerp(GameConstants.meters_to_pixels(rect.get_center()), k)
@@ -504,16 +508,19 @@ func _update_trails() -> void:
 			if trail.size() > TRAIL_MAX_POINTS:
 				trail.remove_at(0)
 			_trails[f] = trail
-	# Finished shells keep their trail while the camera holds on the impact.
-	if _hold_left <= 0.0:
-		for f in _trails.keys():
-			if not live.has(f):
-				if _launch_labels.has(f) and _trails[f].size() >= 2:
-					_ghost_trail = _trails[f]
-					_ghost_label = _launch_labels[f]
-				_launch_labels.erase(f)
-				_enemy_flights.erase(f)
-				_trails.erase(f)
+	# Landed enemy shells keep their trail while the camera holds on the impact; landed player
+	# shells keep it until they're no longer among the last KEPT_SHOT_TRAILS shots.
+	var kept := _player_shots.slice(maxi(0, _player_shots.size() - KEPT_SHOT_TRAILS))
+	for f in _trails.keys():
+		if live.has(f):
+			continue
+		var enemy := _enemy_flights.has(f) or sim.is_enemy_flight(f)
+		if (enemy and _hold_left <= 0.0) or (not enemy and not kept.has(f)):
+			_launch_labels.erase(f)
+			_enemy_flights.erase(f)
+			_trails.erase(f)
+	# Forget launch order for shells that no longer have a trail.
+	_player_shots = _player_shots.filter(func(f: ShellFlight) -> bool: return _trails.has(f) or live.has(f))
 
 
 func _update_blasts(delta: float) -> void:
@@ -568,20 +575,29 @@ func _draw_overlay() -> void:
 	for s in sim.strikes:
 		_strike_marker(s.x, ENEMY_SHELL_COLOR, line_w * 2.0)
 
-	if _ghost_trail.size() >= 2:
-		var ghost := PackedVector2Array()
-		for p in _ghost_trail:
-			ghost.append(p * px)
-		BattleArt.draw_dashed_polyline(_overlay, ghost, Color(Blueprint.AMBER, 0.45), line_w, 1.2 * px, 0.8 * px)
-		var end := ghost[ghost.size() - 1]
-		BattleArt.draw_crosshair(_overlay, end, 1.5 * px, Color(Blueprint.AMBER, 0.75), line_w)
-		var font_size := roundi(13.0 / camera.zoom.x)
-		_overlay.draw_string(Blueprint.FONT_MONO_BOLD, end + Vector2(-3.0 * px, -3.0 * px), _ghost_label,
-				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(Blueprint.AMBER, 0.85))
+	# Landed player shots: dashed amber traces, the newest labelled with its settings.
+	var landed := _player_shots.filter(func(f: ShellFlight) -> bool:
+		return f.is_finished and _trails.has(f) and _trails[f].size() >= 2)
+	for i in landed.size():
+		var newest := i == landed.size() - 1
+		var alpha := 0.55 if newest else 0.25
+		var pts := PackedVector2Array()
+		for p in _trails[landed[i]]:
+			pts.append(p * px)
+		BattleArt.draw_dashed_polyline(_overlay, pts, Color(Blueprint.AMBER, alpha), line_w, 1.2 * px, 0.8 * px)
+		var end := pts[pts.size() - 1]
+		BattleArt.draw_crosshair(_overlay, end, 1.5 * px, Color(Blueprint.AMBER, alpha + 0.2), line_w)
+		if newest and _launch_labels.has(landed[i]):
+			var font_size := roundi(13.0 / camera.zoom.x)
+			_overlay.draw_string(Blueprint.FONT_MONO_BOLD, end + Vector2(-3.0 * px, -3.0 * px),
+				_launch_labels[landed[i]], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(Blueprint.AMBER, 0.85))
 
 	for f: ShellFlight in _trails:
 		var trail: PackedVector2Array = _trails[f]
-		var col := ENEMY_SHELL_COLOR if _enemy_flights.has(f) or sim.is_enemy_flight(f) else PLAYER_SHELL_COLOR
+		var enemy := _enemy_flights.has(f) or sim.is_enemy_flight(f)
+		if not enemy and f.is_finished:
+			continue  # drawn above as a landed-shot trace
+		var col := ENEMY_SHELL_COLOR if enemy else PLAYER_SHELL_COLOR
 		if trail.size() >= 2:
 			var pts := PackedVector2Array()
 			for p in trail:
