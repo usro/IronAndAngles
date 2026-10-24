@@ -303,4 +303,5 @@ static func _enemy_text(sim: BattleSim) -> String:
 		return "ENEMY GUN: DESTROYED  +%d%% BONUS ON VICTORY" % roundi(BattleSim.COUNTER_BATTERY_BONUS * 100.0)
 	if not sim.enemy_spotted:
 		return "ENEMY GUN: HIDDEN (fires → spotted)"
-	return "ENEMY GUN: SPOTTED  %d / %d HP" % [ceili(sim.enemy_health), ceili(sim.enemy_max_health)]
+	var range_m := sim.enemy_origin_m.x - sim.battery_position_m().x
+	return "ENEMY GUN: SPOTTED  %.0f m  ·  %d / %d HP" % [range_m, ceili(sim.enemy_health), ceili(sim.enemy_max_health)]

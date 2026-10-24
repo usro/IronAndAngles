@@ -325,6 +325,9 @@ func _draw_overlay() -> void:
 		var r := _px_rect(sim.enemy_gun_rect())
 		BattleArt.draw_health(_overlay, Rect2(r.position - Vector2(0, 2.0 * px), r.size),
 			sim.enemy_health / maxf(sim.enemy_max_health, 1.0), 0.35 * px, ENEMY_SHELL_COLOR)
+		if alive:
+			# Constant on-screen size, so the spotted gun stays findable at any zoom.
+			BattleArt.draw_crosshair(_overlay, r.get_center(), 12.0 / camera.zoom.x, ENEMY_SHELL_COLOR, line_w)
 
 	var sel := sim.selected_mount()
 	if sel and sel.is_orbital() and sel.is_alive():
