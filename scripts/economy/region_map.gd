@@ -49,6 +49,13 @@ func _new_round() -> void:
 	_refresh_auction()
 
 
+func _open_research() -> void:
+	var panel := TechTreePanel.new()
+	# Research changes what the shop sells.
+	panel.tree_exited.connect(_refresh_store)
+	add_child(panel)
+
+
 func _select(lot: Auction.Lot) -> void:
 	_selected = lot
 	_refresh_auction()
@@ -224,6 +231,7 @@ func _build() -> void:
 	_funds_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_funds_label.add_theme_font_size_override("font_size", 20)
 	top.add_child(_funds_label)
+	_row_button(top, "Research", _open_research)
 	_row_button(top, "Save", func() -> void: _status_label.text = "Saved" if SaveSystem.save_game() == OK else "Save failed")
 	_row_button(top, "Main Menu", SceneRouter.goto.bind(SceneRouter.Screen.MAIN_MENU))
 

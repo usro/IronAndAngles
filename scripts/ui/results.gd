@@ -9,7 +9,15 @@ func _ready() -> void:
 		PlaceholderUI.label(box, "No battle result")
 	else:
 		PlaceholderUI.label(box, "VICTORY" if r.victory else "DEFEAT", 40)
-		PlaceholderUI.label(box, "Payout: %d" % r.payout_earned)
-		PlaceholderUI.label(box, "Shells fired: %d  (cost %d)" % [r.shells_fired, r.ammo_spent])
-		PlaceholderUI.label(box, "Net profit: %d" % r.net_profit(), 24)
+		var report := StrategyController.new().last_settlement()
+		if report:
+			for line in report.summary_lines():
+				PlaceholderUI.label(box, line)
+		else:
+			PlaceholderUI.label(box, "Payout: %d" % r.payout_earned)
+			PlaceholderUI.label(box, "Net profit: %d" % r.net_profit(), 24)
+		PlaceholderUI.label(box, "Shells: %d fired, %d hit (%d%% accuracy)" % [
+				r.shells_fired, r.shells_hit, roundi(r.accuracy() * 100.0)])
+		PlaceholderUI.label(box, "Targets destroyed: %d   Time: %ds" % [r.targets_destroyed, roundi(r.duration_s)])
+		PlaceholderUI.label(box, "Funds now: %d" % GameState.player.money, 24)
 	PlaceholderUI.button(box, "Continue", SceneRouter.goto.bind(SceneRouter.Screen.REGION_MAP))
