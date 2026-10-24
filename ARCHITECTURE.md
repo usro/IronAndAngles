@@ -171,6 +171,14 @@ Code in `scripts/fx/`, sounds in `audio/`, tests in `tests/fx/`. The `AudioDirec
 
 `DebugMenu` autoload (`scripts/debug/debug_menu.gd`), **F1** or **`** to toggle, debug builds only (it frees itself in release exports). Campaign cheats everywhere (funds, refill ammo, repair, advance era / unlock all tech, give weapons, quick battle on a generated contract of the current era), region-map actions (reroll the week, win the selected lot and deploy), battle actions (auto-aim, kill one / all targets, lose, heal; god mode, instant reload and enemy-holds-fire toggles that persist across battles) and time scale. Cheats go through the normal models, so autosave records them; buttons take no keyboard focus so Space still fires.
 
+## Launch features
+
+- **Settings** autoload (`scripts/core/settings.gd`, `user://settings.cfg`): window mode/size, tutorial tips (shown once each), key bindings (first key of each rebindable action). `Settings.persist` is switched off by the test runner so tests never touch the player's file.
+- **Pause** (`scripts/ui/pause_menu.gd`): Esc in battle pauses (`get_tree().paused`); Retreat needs confirming. Overlays derive from `OverlaySheet` (works while paused).
+- **Campaign goal** (`scripts/progression/campaign_goal.gd`): win 3 Experimental-era contracts (`PlayerState.era_victories`); the first time it's met, Results → `SceneRouter.Screen.ENDING` (stats + credits), then play can continue. Credits text: `scripts/ui/credits.gd`.
+- **Tutorial tips** (`scripts/battle/tutorial_tips.gd`): context-triggered cards in the first battles.
+- **Branding/build**: icon and splash in `assets/branding/` (rendered from `icon.svg`), version in `project.godot`, export presets in `export_presets.cfg`; see `RELEASE.md`.
+
 ## Running
 
 ```bash

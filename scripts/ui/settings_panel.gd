@@ -10,6 +10,7 @@ var _key_buttons: Dictionary = {}
 
 func _init() -> void:
 	super("CONFIGURATION · SHEET 05", "SETTINGS", 620.0)
+	max_content_height = 470.0
 
 
 func build() -> void:

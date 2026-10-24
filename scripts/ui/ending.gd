@@ -23,8 +23,11 @@ func _ready() -> void:
 	var stamp := Stamp.new()
 	stamp.text = "CONTRACT FULFILLED"
 	stamp.color = Blueprint.AMBER
-	stamp.custom_minimum_size = Vector2(380, 90)
+	stamp.custom_minimum_size = Vector2(380, 120)
 	left.add_child(stamp)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 12)
+	left.add_child(gap)
 	_label(left, "The battery's work is done. Its guns are spoken of from the trebuchet yards to the orbital rails.",
 		&"BodyLabel")
 	left.add_child(HSeparator.new())

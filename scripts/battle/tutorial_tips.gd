@@ -17,10 +17,15 @@ var _damaged := false
 func _ready() -> void:
 	theme_type_variation = &"HudPanel"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	grow_horizontal = Control.GROW_DIRECTION_BOTH
+	# Bottom right, over the observer pane's ground: clear of every HUD plate.
+	anchor_left = 1.0
+	anchor_right = 1.0
+	anchor_top = 1.0
+	anchor_bottom = 1.0
+	offset_right = -14.0
+	offset_bottom = -40.0
+	grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	grow_vertical = Control.GROW_DIRECTION_BEGIN
-	position.y -= 150.0
 	var box := VBoxContainer.new()
 	add_child(box)
 	var kicker := Label.new()
@@ -31,7 +36,7 @@ func _ready() -> void:
 	_label = Label.new()
 	_label.theme_type_variation = &"BodyLabel"
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label.custom_minimum_size = Vector2(560, 0)
+	_label.custom_minimum_size = Vector2(520, 0)
 	box.add_child(_label)
 	visible = false
 	battle.sim.shell_observed.connect(func(_p: Vector2, _h: bool) -> void: _observed = true)

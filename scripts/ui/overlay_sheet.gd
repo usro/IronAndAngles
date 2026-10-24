@@ -9,6 +9,8 @@ var content: VBoxContainer
 var _kicker: String
 var _title: String
 var _width: float
+## When > 0, the content scrolls inside this height (for sheets taller than the screen).
+var max_content_height := 0.0
 
 
 func _init(kicker: String, title: String, width := 560.0) -> void:
@@ -55,7 +57,16 @@ func _ready() -> void:
 	root.add_child(HSeparator.new())
 	content = VBoxContainer.new()
 	content.add_theme_constant_override("separation", 10)
-	root.add_child(content)
+	if max_content_height > 0.0:
+		var scroll := ScrollContainer.new()
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.custom_minimum_size = Vector2(_width - 40.0, minf(max_content_height,
+			get_viewport_rect().size.y - 200.0))
+		content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.add_child(content)
+		root.add_child(scroll)
+	else:
+		root.add_child(content)
 	build()
 
 
