@@ -13,6 +13,7 @@ func save_game(slot: int = 0) -> Error:
 		"saved_at": Time.get_datetime_string_from_system(),
 		"campaign_seed": GameState.campaign_seed,
 		"player": GameState.player.to_dict(),
+		"economy": GameState.economy_state,
 	}
 	var f := FileAccess.open(_path(slot), FileAccess.WRITE)
 	if f == null:
@@ -30,6 +31,8 @@ func load_game(slot: int = 0) -> Error:
 		return ERR_PARSE_ERROR
 	# Future: migrate older versions here based on parsed["version"].
 	GameState.load_player(PlayerState.from_dict(parsed.get("player", {})), int(parsed.get("campaign_seed", 0)))
+	var economy: Variant = parsed.get("economy", {})
+	GameState.economy_state = economy if typeof(economy) == TYPE_DICTIONARY else {}
 	EventBus.game_loaded.emit(slot)
 	return OK
 

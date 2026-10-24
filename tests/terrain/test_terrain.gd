@@ -250,9 +250,9 @@ func test_perf_many_carves() -> void:
 		terrain.carve(Vector2(x, map.surface_height_at(x)), rng.randf_range(1.5, 4.0))
 		terrain.rebuild_dirty()
 	var per_impact_ms := (Time.get_ticks_usec() - t3) / 1000.0
-	print("     terrain perf: %d carves %.1f ms, rebuild %.1f ms, 1000 raycasts %.1f ms, carve+rebuild each %.1f ms" % [
-			PERF_CARVES, carve_ms, rebuild_ms, ray_ms, per_impact_ms])
-	assert_true(per_impact_ms < PERF_PER_IMPACT_BUDGET_MS, "carve+rebuild each took %.1f ms" % per_impact_ms)
+	print("     terrain perf: %d carves %.1f ms, rebuild %.1f ms, 1000 raycasts %.1f ms, %d carve+rebuilds %.1f ms" % [
+			PERF_CARVES, carve_ms, rebuild_ms, ray_ms, PERF_CARVES, per_impact_ms])
+	assert_true(per_impact_ms < PERF_PER_IMPACT_BUDGET_MS, "carve+rebuild after every impact took %.1f ms in total" % per_impact_ms)
 	assert_true(carve_ms < PERF_CARVE_BUDGET_MS, "carves took %.1f ms" % carve_ms)
 	assert_true(rebuild_ms < PERF_REBUILD_BUDGET_MS, "rebuild took %.1f ms" % rebuild_ms)
 	assert_true(ray_ms < 1000.0, "raycasts took %.1f ms" % ray_ms)

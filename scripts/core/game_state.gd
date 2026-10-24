@@ -11,6 +11,9 @@ var current_contract: ContractData
 var current_plot: PlotData
 ## Set by the battle scene when it ends; read by the results screen.
 var last_battle_result: BattleResult
+## Campaign data owned by the economy (rival funds, last contract price). JSON-safe values only;
+## SaveSystem stores it as-is. Read and written through scripts/economy, not directly.
+var economy_state: Dictionary = {}
 
 
 func _ready() -> void:
@@ -24,6 +27,7 @@ func new_game(seed_value: int = -1) -> void:
 	current_contract = null
 	current_plot = null
 	last_battle_result = null
+	economy_state = {}
 	_grant_starting_kit()
 
 
