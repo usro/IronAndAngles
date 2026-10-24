@@ -42,6 +42,11 @@ var _committed := false
 var _trails: Dictionary = {}
 ## {"position": Vector2, "radius": float, "age": float, "kind": StringName}
 var _blasts: Array[Dictionary] = []
+## The player's previous shell stays on screen as a faint reference for correcting the next shot.
+var _ghost_trail := PackedVector2Array()
+var _ghost_label := ""
+## ShellFlight -> "elev / charge" text captured at launch (player shells only).
+var _launch_labels: Dictionary = {}
 
 
 func _ready() -> void:
@@ -159,9 +164,12 @@ func _wheel(dir: int, shift: bool) -> void:
 
 # --- Events ---
 
-func _on_shell_launched(flight: ShellFlight, _enemy: bool) -> void:
+func _on_shell_launched(flight: ShellFlight, enemy: bool) -> void:
 	_trails[flight] = PackedVector2Array([flight.position_m])
 	_hold_left = CAMERA_HOLD_S
+	var m := sim.selected_mount()
+	if not enemy and m and not m.is_orbital():
+		_launch_labels[flight] = "last: %.1f° / %.1f%%" % [m.elevation_deg, m.charge * 100.0]
 
 
 func _on_blast(position_m: Vector2, radius_m: float, kind: StringName) -> void:
@@ -251,6 +259,10 @@ func _update_trails() -> void:
 	if _hold_left <= 0.0:
 		for f in _trails.keys():
 			if not live.has(f):
+				if _launch_labels.has(f) and _trails[f].size() >= 2:
+					_ghost_trail = _trails[f]
+					_ghost_label = _launch_labels[f]
+				_launch_labels.erase(f)
 				_trails.erase(f)
 
 
@@ -294,6 +306,17 @@ func _draw_overlay() -> void:
 		_strike_marker(sel.designated_x_m, SELECTED_COLOR, line_w)
 	for s in sim.strikes:
 		_strike_marker(s.x, ENEMY_SHELL_COLOR, line_w * 2.0)
+
+	if _ghost_trail.size() >= 2:
+		var ghost := PackedVector2Array()
+		for p in _ghost_trail:
+			ghost.append(p * px)
+		_overlay.draw_polyline(ghost, Color(PLAYER_SHELL_COLOR, 0.2), line_w)
+		var end := ghost[ghost.size() - 1]
+		_overlay.draw_arc(end, 1.5 * px, 0.0, TAU, 20, Color(PLAYER_SHELL_COLOR, 0.5), line_w)
+		var font_size := roundi(14.0 / camera.zoom.x)
+		_overlay.draw_string(ThemeDB.fallback_font, end + Vector2(-3.0 * px, -2.5 * px), _ghost_label,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(PLAYER_SHELL_COLOR, 0.7))
 
 	for f: ShellFlight in _trails:
 		var trail: PackedVector2Array = _trails[f]

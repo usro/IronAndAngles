@@ -17,6 +17,10 @@ const ENEMY_STANDOFF_M := 12.0
 const ENEMY_MUZZLE_HEIGHT_M := 2.0
 ## Enemy shells do this share of their ammo's damage (the defender is not a full battery).
 const ENEMY_DAMAGE_SCALE := 0.5
+## The defender reloads this many times slower than its weapon's rated reload at difficulty 1,
+## dropping by ENEMY_RELOAD_PER_DIFFICULTY per step (a lone gun crew, not a full battery).
+const ENEMY_RELOAD_FACTOR := 2.2
+const ENEMY_RELOAD_PER_DIFFICULTY := 0.25
 ## Seconds before the enemy brain is asked again after it held fire.
 const ENEMY_RETRY_S := 1.0
 ## Battery weapons stand this far apart (closer if many share the pad).
@@ -298,11 +302,17 @@ func _setup_enemy(weapon_table: Dictionary) -> void:
 		return
 	var x := minf(map.target_zone_max_x_m + ENEMY_STANDOFF_M, bounds_m().end.x - 1.0)
 	enemy_origin_m = Vector2(x, map.surface_height_at(x) - ENEMY_MUZZLE_HEIGHT_M)
-	enemy_reload_left = enemy_weapon.reload_time + enemy_weapon.cooldown
+	enemy_reload_left = enemy_reload_time()
 	if brain_factory.is_valid():
 		enemy_brain = brain_factory.call()
 	else:
 		enemy_brain = SimpleEnemyBrain.new()
+
+
+## Seconds between enemy shots for this contract's difficulty.
+func enemy_reload_time() -> float:
+	var factor := maxf(1.0, ENEMY_RELOAD_FACTOR - ENEMY_RELOAD_PER_DIFFICULTY * (contract.difficulty - 1))
+	return (enemy_weapon.reload_time + enemy_weapon.cooldown) * factor
 
 
 # --- Firing ---
@@ -367,7 +377,7 @@ func _tick_enemy(delta: float) -> void:
 	if plan.is_empty():
 		enemy_reload_left = ENEMY_RETRY_S
 		return
-	enemy_reload_left = enemy_weapon.reload_time + enemy_weapon.cooldown
+	enemy_reload_left = enemy_reload_time()
 	var p := ShotParams.create(enemy_weapon, enemy_ammo, plan.elevation_deg, plan.charge,
 		enemy_origin_m, int(plan.get("facing", -1)), weather, _child_rng(_enemy_rng))
 	_configure(p)

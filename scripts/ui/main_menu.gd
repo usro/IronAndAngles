@@ -8,6 +8,7 @@ func _ready() -> void:
 	PlaceholderUI.button(box, "New Campaign", _on_new)
 	var cont := PlaceholderUI.button(box, "Continue", _on_continue)
 	cont.disabled = not SaveSystem.has_save()
+	PlaceholderUI.button(box, "How to Play", func() -> void: add_child(HowToPlayPanel.new()))
 	PlaceholderUI.button(box, "Quit", get_tree().quit)
 
 

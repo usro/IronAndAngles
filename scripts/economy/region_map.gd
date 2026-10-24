@@ -232,6 +232,7 @@ func _build() -> void:
 	_funds_label.add_theme_font_size_override("font_size", 20)
 	top.add_child(_funds_label)
 	_row_button(top, "Research", _open_research)
+	_row_button(top, "How to Play", func() -> void: add_child(HowToPlayPanel.new()))
 	_row_button(top, "Save", func() -> void: _status_label.text = "Saved" if SaveSystem.save_game() == OK else "Save failed")
 	_row_button(top, "Main Menu", SceneRouter.goto.bind(SceneRouter.Screen.MAIN_MENU))
 
