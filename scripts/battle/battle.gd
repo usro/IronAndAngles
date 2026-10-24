@@ -16,6 +16,8 @@ const HOME_VIEW_M := Vector2(170.0, 96.0)
 const HOME_OFFSET_M := Vector2(55.0, -20.0)
 ## Split screen: each half shows this much field (meters) at the same zoom.
 const SPLIT_VIEW_M := Vector2(90.0, 100.0)
+## Top-centre profile strip between the mission and conditions plates.
+const MINIMAP_SIZE := Vector2(420.0, 64.0)
 const SPLIT_BATTERY_OFFSET_M := Vector2(20.0, -25.0)
 ## The observer looks a little past the zone's centre so a spotted enemy gun is in frame.
 const SPLIT_OBSERVER_OFFSET_M := Vector2(8.0, -25.0)
@@ -39,6 +41,7 @@ var terrain: Terrain
 var camera: Camera2D
 var hud: BattleHud
 var firing_table: FiringTablePanel
+var minimap: BattleMinimap
 ## Split screen: our battery on the left, the forward observer's view of the targets on the right.
 var split := false
 var _observer: ObserverPane
@@ -118,6 +121,16 @@ func _ready() -> void:
 	firing_table = FiringTablePanel.new()
 	firing_table.sim = sim
 	hud.add_child(firing_table)
+	minimap = BattleMinimap.new()
+	minimap.sim = sim
+	minimap.trails = _trails
+	minimap.anchor_left = 0.5
+	minimap.anchor_right = 0.5
+	minimap.offset_left = -MINIMAP_SIZE.x * 0.5
+	minimap.offset_right = MINIMAP_SIZE.x * 0.5
+	minimap.offset_top = 14.0
+	minimap.offset_bottom = 14.0 + MINIMAP_SIZE.y
+	hud.add_child(minimap)
 	sim.start()
 	# Split screen by default whenever the targets lie beyond the home view.
 	set_split(sim.target_zone_center_m().x - sim.battery_position_m().x > HOME_OFFSET_M.x + HOME_VIEW_M.x * 0.5)
