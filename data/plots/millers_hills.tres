@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlotData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"millers_hills"
+display_name = "Miller's Hills"
+description = "Rolling farmland with good cover and a long view."
+terrain_profile = 1
+terrain_seed = 4242
+altitude_m = 60.0
+height_advantage_m = 10.0
+target_distance_m = 320.0
+map_position = Vector2(0.62, 0.3)

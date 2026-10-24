@@ -15,7 +15,7 @@ Godot 4.7, GDScript, 2D, GL Compatibility renderer. Design source: `game_design_
 
 1. `EventBus`: all cross-system signals. **Add signals freely; never rename or remove one** without updating every listener.
 2. `DataRegistry`: loads every `.tres` under `res://data/<kind>/` at startup. Look up by id: `DataRegistry.get_weapon(&"trebuchet")`. Dropping a new file in the folder registers it.
-3. `GameState`: current `PlayerState`, campaign seed and RNG, `current_contract` / `current_plot` (set by the auction), `last_battle_result` (set by the battle).
+3. `GameState`: current `PlayerState`, campaign seed and RNG, `current_contract` / `current_plot` (set by the auction), `last_battle_result` (set by the battle), `economy_state` (JSON-safe dictionary owned by the economy: rival funds, last contract price; saved as-is).
 4. `SaveSystem`: JSON saves in `user://saves/slot_N.json`. Never `.tres`, because a resource file can carry script code.
 5. `SceneRouter`: the only thing that changes the top-level scene. `SceneRouter.goto(SceneRouter.Screen.BATTLE)`.
 
@@ -64,7 +64,14 @@ These signatures are proposals. The owning session may refine them and documents
 
 - **Ballistics** (pure `RefCounted`, no nodes): `Ballistics.simulate(weapon: WeaponData, ammo: AmmoData, elevation_deg: float, charge: float, origin_m: Vector2, facing: int, weather: WeatherState, rng: RandomNumberGenerator, hit_test: Callable) -> Trajectory`, where `Trajectory` holds the sampled points, impact point, time of flight and bounces. `hit_test(from_m, to_m) -> Dictionary` is provided by terrain, so ballistics needs no terrain dependency. It also has a step-wise API, so the battle can animate the shell live.
 - **Terrain:** a node that builds the ground from a `PlotData`, with `carve(center_m: Vector2, radius_m: float)` (emits `EventBus.terrain_carved`), `is_solid(point_m) -> bool`, `raycast(from_m, to_m) -> Dictionary` and `surface_height_at(x_m) -> float`.
-- **Economy:** auction logic as pure classes (`Auction`, bid resolution, rival bidding hook for AI), a shop that buys weapons, ammo and repairs through `PlayerState`, and settlement of the result.
+- **Economy** (final, `scripts/economy/`):
+  - `ContractOffers.generate(contracts, era, completed, rng, count) -> Array[ContractData]`: era-eligible contracts with plots, shuffled by a seeded RNG, uncompleted first.
+  - `Auction` (pure): sealed-bid, first-price. Each (contract, plot) is an `Auction.Lot`; one bid per bidder (rebidding replaces it); bid must be `>= reserve_price` and `<= set_budget()`; highest bid per contract wins and pays its bid; **ties go to the earliest bid**; `resolve(collect_payment)` skips winners who can no longer pay. Emits `started / bid_placed / won`, relayed to `EventBus.auction_started / bid_placed / auction_won`. The player's bidder id is `Auction.PLAYER_ID` (`&"player"`).
+  - `RivalBidder` (hook): override `choose_bid(rival, budget, lots, rng) -> {"lot", "amount"}` or `{}`. Default `RuleBasedRivalBidder` (aggression, preferred terrain). AI plugs in via `StrategyController.rival_brains[rival_id]` or `default_brain`.
+  - `RivalLedger`: rival funds, never negative; won contracts are fought off-screen by `settle_contract`. Saved in `GameState.economy_state["rival_money"]`.
+  - `Shop` (pure): `buy_weapon / buy_ammo / repair` return `Shop.Status`. An item is for sale if its era <= player era and no tech node lists it, or an unlocked tech node does (`unlocks_weapons / unlocks_ammo`). Repairs cost `ceil(hp) * repair_cost_per_hp`. Stocking ammo costs `AMMO_STOCK_FEE_RATE` (25%) of `cost_per_shell`; firing still charges the full `cost_per_shell`.
+  - `Settlement`: the **auction price is paid up front** when the auction resolves (`PlayerState.spend`; you can't bid more than you have, and a lost battle still costs the price). The payout is not reduced. `Settlement.report(result, price, weapons)` gives payout, price, shells, repair cost, `net_profit()` and `margin()` for the results screen; `StrategyController.last_settlement()` builds it for the last battle.
+  - `StrategyController`: glue used by the region map (offers, auction round, payments, `deploy()` to battle).
 - **Progression:** a `TechTree` that answers `can_unlock(id)` and `unlock(id)` (spends money, emits `tech_unlocked`) and lists purchasable weapons and ammo.
 
 ## Running

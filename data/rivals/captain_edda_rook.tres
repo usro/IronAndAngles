@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RivalData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rival_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"captain_edda_rook"
+display_name = "Captain Edda Rook"
+starting_money = 4500
+aggression = 0.4
+preferred_terrain = Array[int]([1])

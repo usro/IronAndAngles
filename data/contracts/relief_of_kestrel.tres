@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Resource" path="res://data/plots/millers_hills.tres" id="2"]
+[ext_resource type="Resource" path="res://data/plots/saltmarsh_flats.tres" id="3"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="5"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("4")
+wind_speed = 4.0
+gust_strength = 2.0
+rain_intensity = 0.3
+
+[resource]
+script = ExtResource("1")
+id = &"relief_of_kestrel"
+client_name = "Abbess Maren of Kestrel"
+briefing = "Raiders have dug in around the abbey. Silence their four siege towers."
+era_required = 0
+payout = 1800
+reserve_price = 300
+plots = Array[ExtResource("5")]([ExtResource("2"), ExtResource("3")])
+target_count = 4
+target_health = 100.0
+weather = SubResource("weather")
+difficulty = 2

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlotData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"saltmarsh_flats"
+display_name = "Saltmarsh Flats"
+description = "Open, level ground close to the walls. No cover, short range."
+terrain_profile = 0
+terrain_seed = 777
+altitude_m = 5.0
+height_advantage_m = 0.0
+target_distance_m = 220.0
+map_position = Vector2(0.7, 0.7)
