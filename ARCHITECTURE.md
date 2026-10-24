@@ -30,7 +30,7 @@ The contracts between screens:
 - **Battle → Results:** fill a `BattleResult`, emit `EventBus.battle_ended(result)`, call `GameState.apply_battle_result(result)`, then `goto(RESULTS)`.
 - **Shell costs** are charged when each shell is fired (`player.charge()`), so funds can go negative mid-battle. The payout is added in `apply_battle_result`.
 
-All four screens are currently **placeholders** built with `PlaceholderUI`. Each owning session replaces its own screen but keeps the contract above.
+The battle screen is real gameplay (see *Battle*); the other three screens are still **placeholders** built with `PlaceholderUI`. Each owning session replaces its own screen but keeps the contract above.
 
 ## Conventions
 
@@ -53,7 +53,7 @@ Each session owns its folders. Shared files (`scripts/core/`, `scripts/data/`, `
 | 2 Terrain | `scripts/terrain/`, `tests/terrain/` |
 | 3 Economy & auction | `scripts/economy/`, `scenes/strategy/`, `tests/economy/` |
 | 4 Tech tree & content | `scripts/progression/`, `data/**` (all `.tres` content), `tests/progression/` |
-| 5 Battle gameplay | `scripts/battle/`, `scenes/battle/`, input map in `project.godot` |
+| 5 Battle gameplay | `scripts/battle/`, `scenes/battle/`, `tests/battle/`, input map in `project.godot` |
 | 6 AI | `scripts/ai/` |
 | 7 UI | `scripts/ui/`, `scenes/ui/`, `scenes/menu/`, `scenes/results/`, themes |
 | 8 Audio & effects | `audio/`, `scripts/fx/`, `assets/` effects |
@@ -111,6 +111,30 @@ The cost is a 0.25 m staircase on edges, hidden by linear filtering plus the 0.5
 
 **Not done yet:** loose debris islands stay floating (no collapse), and craters are not saved; if a mid-battle save is needed, store the `(center, radius)` list and replay it, since carving is deterministic.
 
+
+## Battle
+
+Code in `scripts/battle/`, tests in `tests/battle/`. Manual end-to-end run (windowed, presses the real buttons and input actions, aims with AimSolver): `$GODOT --path . -s res://tests/battle/play_through.gd -- <screenshot dir>`.
+
+| Piece | Role |
+|---|---|
+| `BattleSim` (RefCounted) | The battle model. `BattleSim.new(contract, plot, player, field, seed)` where field is a built `Terrain` (scene) or a `TerrainMap` (tests). `tick(delta)`, `pull_trigger()`, `select_next_weapon()`, `cycle_ammo()`, `adjust_designator(mount, dx)`, `retreat()`, `commit()` (emits `battle_ended` + `GameState.apply_battle_result`). Local signals `shell_launched`, `blast`, `ended` for the view. |
+| `WeaponMount` | One owned weapon on the pad: dials (`elevation_deg`, `charge`, `designated_x_m` for orbital), `health`, fire control (`pull_trigger`, `tick` → shells due, `abort_salvo`). |
+| `BattleTarget` | A contract target: a 4×3 m box on the ground with health. Drops into craters dug under it. |
+| `BattleRules` | Pure rules: `blast_damage` (full within 0.5 m of a box, linear to 0 over `explosion_radius_m`; incendiary × `1 − rain_penalty·rain`), reveal steps, `battle_weather` (contract weather as sea level, density × e^(−altitude/8.5 km)), segment-vs-box. |
+| `EnemyBrain` / `SimpleEnemyBrain` | Counter-battery aiming hook (see below). |
+| `battle.gd` + `BattleHud` | Scene: builds `Terrain`, runs the sim, input, camera, plain drawing, HUD. |
+
+**Flow:** each mount starts loaded. A trigger pull fires `salvo_size` shells `salvo_interval` apart, then locks the weapon for `reload_time + cooldown`. Every shell consumes one ammo and `player.charge(cost_per_shell + energy_cost_per_shot)`, emits `shot_fired`, and is a live `ShellFlight` (hit test = terrain raycast plus the live target boxes; weather density referenced to y = 0). Impacts carve `crater_radius_m` and deal blast damage (`projectile_impacted`, `target_hit`, `target_destroyed`); bounces deal 50 % damage and dig 40 % of the crater (`projectile_bounced`); airbursts deal blast damage without a crater; fragments only damage what they touch. Guided ammo homes on the live target nearest its unguided landing point. **Orbital** weapons designate an x (the charge/elevation keys move it); the rod drops 3 s later from 400 m straight down at the charge's velocity, scattered by `spread_deg`. A shell counts as a hit (`shells_hit`) if it or its fragments damaged anything.
+
+**Counter-battery:** every shot raises `reveal_level` by 0.05; a shell that damages nothing adds 0.08 more when it settles (`battery_revealed`). Orbital strikes don't reveal the battery. The defender fields the cheapest non-orbital weapon of the contract's era (first allowed ammo), from 12 m right of the target zone, once per `reload_time + cooldown`. It hits the battery for 50 % of its ammo's blast damage (`battery_damaged`, `BattleResult.damage_taken`). The first enemy shot comes after one reload. Each time the gun is loaded the sim asks `EnemyBrain.plan_shot(situation, rng) -> {elevation_deg, charge[, facing]}` or `{}` to hold. `SimpleEnemyBrain` holds below reveal 0.1, then picks a working weapon and aims at it with `AimSolver` (high arc) plus a seeded error of ±`lerp(60, 2, reveal) / (1 + 0.35·(difficulty − 1))` m. **AI hook:** set `BattleSim.brain_factory = func() -> EnemyBrain: return MyBrain.new()` before the battle scene loads.
+
+**End:** victory when every target is destroyed. Defeat when every battery weapon is at 0 hp, `time_limit` runs out, the player retreats (Esc), or no working weapon has ammo left and no shell of ours is in the air. The banner shows for 2.5 s, then `commit()` and `goto(RESULTS)`.
+
+**Randomness:** one RNG seeded from `GameState.rng.randi()` at battle start; every shell gets its own child RNG at launch, and the enemy brain has its own, so frame timing never changes a result.
+
+**Controls** (input map): `aim_up/aim_down` W/S ↑/↓ (elevation), `charge_up/charge_down` D/A →/← (charge; orbital: target x), `fine_adjust` Shift (÷10), mouse wheel elevation (Shift+wheel charge), `fire` Space, `next_weapon` Tab/E, `next_ammo` R, `toggle_overview` V, `retreat` Esc.
+
 ## Running
 
 ```bash
@@ -127,7 +151,7 @@ Tests: put `test_*.gd` files under `tests/<area>/`, extending `TestCase`. Every 
 | Question | Decision |
 |---|---|
 | Turn-based or real-time? | **Real-time with reload timers.** This fits Tier 3 reload management, Tier 4 cooldowns and counter-battery pressure. |
-| How you win a battle | Destroy all `target_count` targets. You lose if every battery weapon reaches 0 health, or the `time_limit` expires (when set). |
+| How you win a battle | Destroy all `target_count` targets. You lose if every battery weapon reaches 0 health, or the `time_limit` expires (when set). Also lost: retreating, or running out of usable ammo. |
 | Payout | Fixed payout on victory, nothing on defeat. Shells are paid when fired either way. |
 | Campaign | A run of contracts that unlocks later eras through the tech tree. No fixed ending yet. |
 | Rivals | About 3 AI commanders. They compete **only in the auction**. The enemy firing back in battle is the contract's defender. |
