@@ -8,3 +8,4 @@ id = &"marshal_voss"
 display_name = "Marshal Voss"
 starting_money = 5000
 aggression = 0.7
+preferred_terrain = Array[int]([2, 4])

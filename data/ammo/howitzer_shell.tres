@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"howitzer_shell"
+display_name = "Howitzer Shell"
+description = "155 mm high-explosive shell. Heavy enough to shrug off a breeze."
+era = 1
+damage_type = 1
+cost_per_shell = 220
+mass_kg = 43.0
+drag_coefficient = 0.3
+cross_section_m2 = 0.0189
+wind_sensitivity = 0.4
+damage = 320.0
+explosion_radius_m = 7.0
+crater_radius_m = 4.0

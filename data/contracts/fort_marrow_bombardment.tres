@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="3"]
+[ext_resource type="Resource" path="res://data/plots/fort_marrow_flats.tres" id="10"]
+[ext_resource type="Resource" path="res://data/plots/signal_hill.tres" id="11"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("2")
+wind_speed = -4.0
+gust_strength = 3.0
+rain_intensity = 0.2
+
+[resource]
+script = ExtResource("1")
+id = &"fort_marrow_bombardment"
+client_name = "Admiralty Board"
+briefing = "Reduce six casemates at Fort Marrow. Armored; bring the right shells."
+era_required = 1
+payout = 10500
+reserve_price = 1500
+plots = Array[ExtResource("3")]([ExtResource("10"), ExtResource("11")])
+target_count = 6
+target_health = 350.0
+weather = SubResource("weather")
+difficulty = 3
+time_limit = 0.0

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlotData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"kessel_heights"
+display_name = "Kessel Heights"
+description = "Thin mountain air carries shot farther."
+terrain_profile = 4
+terrain_seed = 2103
+altitude_m = 900.0
+height_advantage_m = 40.0
+target_distance_m = 300.0
+map_position = Vector2(0.12, 0.25)

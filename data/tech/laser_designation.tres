@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TechNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tech_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"laser_designation"
+display_name = "Laser Designation"
+description = "Guided shells that ride a laser spot onto the target."
+era = 2
+research_cost = 18000
+era_gate = false
+prerequisites = Array[StringName]([&"fire_control", &"shrapnel_fuzes"])
+unlocks_weapons = Array[StringName]([])
+unlocks_ammo = Array[StringName]([&"laser_guided_shell"])
+tree_position = Vector2i(5, 2)

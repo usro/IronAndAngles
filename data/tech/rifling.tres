@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TechNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tech_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rifling"
+display_name = "Rifling"
+description = "Spiral grooves spin the shell. Enters the Industrial era."
+era = 1
+research_cost = 6000
+era_gate = true
+prerequisites = Array[StringName]([&"corned_powder", &"great_trebuchet"])
+unlocks_weapons = Array[StringName]([&"rifled_cannon"])
+unlocks_ammo = Array[StringName]([&"common_shell"])
+tree_position = Vector2i(2, 1)

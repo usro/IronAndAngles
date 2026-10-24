@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlotData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"saddle_gap"
+display_name = "Saddle Gap"
+description = "A notch between peaks, close to the road."
+terrain_profile = 3
+terrain_seed = 4103
+altitude_m = 1200.0
+height_advantage_m = -20.0
+target_distance_m = 950.0
+map_position = Vector2(0.76, 0.35)

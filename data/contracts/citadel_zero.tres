@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="3"]
+[ext_resource type="Resource" path="res://data/plots/citadel_approach.tres" id="10"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("2")
+wind_speed = 6.0
+gust_strength = 6.0
+rain_intensity = 0.4
+
+[resource]
+script = ExtResource("1")
+id = &"citadel_zero"
+client_name = "Helion Consortium"
+briefing = "Breach the five shield pylons of Citadel Zero."
+era_required = 3
+payout = 160000
+reserve_price = 20000
+plots = Array[ExtResource("3")]([ExtResource("10")])
+target_count = 5
+target_health = 1500.0
+weather = SubResource("weather")
+difficulty = 4
+time_limit = 0.0

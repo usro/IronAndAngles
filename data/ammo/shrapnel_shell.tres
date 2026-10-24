@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"shrapnel_shell"
+display_name = "Shrapnel Shell"
+description = "Time-fuzed canister of lead balls. Bursts into a cone of fragments."
+era = 1
+damage_type = 3
+cost_per_shell = 130
+mass_kg = 10.0
+drag_coefficient = 0.3
+cross_section_m2 = 0.0082
+wind_sensitivity = 0.6
+damage = 110.0
+explosion_radius_m = 6.0
+crater_radius_m = 0.8
+fragment_count = 24

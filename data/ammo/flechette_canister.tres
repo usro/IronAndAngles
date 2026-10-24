@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"flechette_canister"
+display_name = "Flechette Canister"
+description = "Splits into steel darts just before impact."
+era = 3
+damage_type = 3
+cost_per_shell = 700
+mass_kg = 3.0
+drag_coefficient = 0.18
+cross_section_m2 = 0.0008
+wind_sensitivity = 0.0
+damage = 500.0
+explosion_radius_m = 8.0
+crater_radius_m = 1.0
+fragment_count = 60

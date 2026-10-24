@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rocket_cluster"
+display_name = "Cluster Rocket"
+description = "Dispenses submunitions over a wide area. Saturation, not precision."
+era = 2
+damage_type = 3
+cost_per_shell = 520
+mass_kg = 48.0
+drag_coefficient = 0.35
+cross_section_m2 = 0.0117
+wind_sensitivity = 0.8
+thrust_n = 3500.0
+burn_time = 0.8
+damage = 180.0
+explosion_radius_m = 14.0
+crater_radius_m = 1.0
+fragment_count = 40

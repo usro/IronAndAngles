@@ -7,6 +7,8 @@ extends Resource
 @export_multiline var description: String
 @export var era: GameConstants.Era = GameConstants.Era.MEDIEVAL
 @export var research_cost: int = 0
+## Unlocking this node moves the player into `era`. Other nodes of a later era stay locked until then.
+@export var era_gate: bool = false
 ## Tech ids that must be unlocked first.
 @export var prerequisites: Array[StringName] = []
 ## Weapon/ammo ids that become purchasable when unlocked.

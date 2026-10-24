@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"fire_pot"
+display_name = "Fire Pot"
+description = "Clay pot of pitch and naphtha. Light, so the wind carries it; rain drowns it."
+era = 0
+damage_type = 2
+cost_per_shell = 45
+mass_kg = 12.0
+drag_coefficient = 0.6
+cross_section_m2 = 0.05
+wind_sensitivity = 1.4
+damage = 80.0
+explosion_radius_m = 3.0
+crater_radius_m = 0.5
+rain_penalty = 0.8

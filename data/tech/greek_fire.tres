@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TechNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tech_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"greek_fire"
+display_name = "Greek Fire"
+description = "Incendiary pots for the trebuchet. Useless in the rain."
+era = 0
+research_cost = 600
+era_gate = false
+prerequisites = Array[StringName]([])
+unlocks_weapons = Array[StringName]([])
+unlocks_ammo = Array[StringName]([&"fire_pot"])
+tree_position = Vector2i(0, 0)

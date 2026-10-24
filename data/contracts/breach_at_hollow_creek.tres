@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="3"]
+[ext_resource type="Resource" path="res://data/plots/hollow_creek.tres" id="10"]
+[ext_resource type="Resource" path="res://data/plots/signal_hill.tres" id="11"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("2")
+wind_speed = 2.0
+gust_strength = 2.0
+rain_intensity = 0.0
+
+[resource]
+script = ExtResource("1")
+id = &"breach_at_hollow_creek"
+client_name = "Northern Rail Company"
+briefing = "Knock out four redoubts guarding the rail cutting."
+era_required = 1
+payout = 6000
+reserve_price = 900
+plots = Array[ExtResource("3")]([ExtResource("10"), ExtResource("11")])
+target_count = 4
+target_health = 300.0
+weather = SubResource("weather")
+difficulty = 2
+time_limit = 0.0

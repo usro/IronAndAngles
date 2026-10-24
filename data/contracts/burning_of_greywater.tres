@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="3"]
+[ext_resource type="Resource" path="res://data/plots/greywater_marsh.tres" id="10"]
+[ext_resource type="Resource" path="res://data/plots/millers_hill.tres" id="11"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("2")
+wind_speed = 5.0
+gust_strength = 3.0
+rain_intensity = 0.3
+
+[resource]
+script = ExtResource("1")
+id = &"burning_of_greywater"
+client_name = "Abbess Merrin"
+briefing = "Burn the four granaries of Greywater before the rains set in."
+era_required = 0
+payout = 2200
+reserve_price = 350
+plots = Array[ExtResource("3")]([ExtResource("10"), ExtResource("11")])
+target_count = 4
+target_health = 150.0
+weather = SubResource("weather")
+difficulty = 2
+time_limit = 0.0

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"orbital_platform"
+display_name = "Orbital Strike Uplink"
+description = "Calls a kinetic rod down from orbit. Charge sets descent speed. Ninety seconds between strikes."
+era = 3
+launcher_type = 4
+purchase_cost = 300000
+repair_cost_per_hp = 30
+energy_cost_per_shot = 12000
+max_health = 1000.0
+elevation_min_deg = 85.0
+elevation_max_deg = 90.0
+muzzle_velocity_min = 900.0
+muzzle_velocity_max = 1300.0
+spread_deg = 0.1
+reload_time = 10.0
+salvo_size = 1
+salvo_interval = 0.0
+cooldown = 90.0
+allowed_ammo = Array[StringName]([&"kinetic_rod"])

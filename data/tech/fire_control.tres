@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TechNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tech_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"fire_control"
+display_name = "Fire Control Computers"
+description = "Ballistic computers and armored guns. Enters the Modern era."
+era = 2
+research_cost = 20000
+era_gate = true
+prerequisites = Array[StringName]([&"heavy_howitzer", &"armor_piercing"])
+unlocks_weapons = Array[StringName]([&"sp_howitzer"])
+unlocks_ammo = Array[StringName]([&"he_155"])
+tree_position = Vector2i(4, 1)

@@ -6,6 +6,11 @@
 script = ExtResource("1")
 id = &"early_mortar"
 display_name = "Crude Mortar"
-description = "Black powder in a bronze tube. Placeholder node."
+description = "Black powder in a bronze tube."
 era = 0
 research_cost = 800
+era_gate = false
+prerequisites = Array[StringName]([])
+unlocks_weapons = Array[StringName]([&"bronze_mortar"])
+unlocks_ammo = Array[StringName]([&"iron_ball"])
+tree_position = Vector2i(0, 1)
