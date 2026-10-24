@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = &"fire_control"
 display_name = "Fire Control Computers"
-description = "Ballistic computers and armored guns. Enters the Modern era."
+description = "Ballistic computers and armored guns. Enters the Modern era. Adds the fire-control computer to the battle firing table ([F] dials in the nearest target, correcting for mean wind)."
 era = 2
 research_cost = 20000
 era_gate = true

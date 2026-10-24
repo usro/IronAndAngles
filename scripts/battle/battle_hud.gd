@@ -5,7 +5,8 @@ extends CanvasLayer
 ## a key strip and the end-of-battle stamp. Only reads the sim; battle.gd forwards input.
 
 const KEY_HINTS := [["W/S", "elevation"], ["A/D", "charge"], ["Shift", "fine"], ["Wheel", "elev · +Shift charge"],
-	["Space", "fire"], ["Tab", "weapon"], ["R", "ammo"], ["V", "overview"], ["Esc", "retreat"]]
+	["Space", "fire"], ["Tab", "weapon"], ["R", "ammo"], ["T", "table"], ["F", "computer"], ["V", "overview"],
+	["Esc", "retreat"]]
 
 var _contract_label: Label
 var _clock_label: Label
@@ -124,6 +125,21 @@ func _ready() -> void:
 ## Remembers the dials of a shot the player just fired (drawn as ghost ticks on the gauges).
 func note_shot(mount_index: int, elevation_deg: float, charge: float) -> void:
 	_last_shot = {"mount": mount_index, "elevation": elevation_deg, "charge": charge}
+
+
+## A short message above the key strip that fades out (e.g. "computer locked").
+func flash_note(text: String) -> void:
+	var l := Label.new()
+	l.theme_type_variation = &"StatusLabel"
+	l.text = text
+	l.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	l.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	l.position.y -= 70
+	add_child(l)
+	var tw := l.create_tween()
+	tw.tween_interval(1.8)
+	tw.tween_property(l, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(l.queue_free)
 
 
 func show_banner(text: String) -> void:

@@ -33,6 +33,7 @@ var sim: BattleSim
 var terrain: Terrain
 var camera: Camera2D
 var hud: BattleHud
+var firing_table: FiringTablePanel
 
 var _overlay: Node2D
 var _sky: ColorRect
@@ -95,6 +96,9 @@ func _ready() -> void:
 	sim.shell_launched.connect(_on_shell_launched)
 	sim.blast.connect(_on_blast)
 	sim.ended.connect(_on_ended)
+	firing_table = FiringTablePanel.new()
+	firing_table.sim = sim
+	hud.add_child(firing_table)
 	sim.start()
 	_snap_camera()
 
@@ -109,6 +113,7 @@ func _process(delta: float) -> void:
 		_end_left -= delta
 		if _end_left <= 0.0 and not _committed:
 			_finish()
+	firing_table.refresh()
 	_update_trails()
 	_update_blasts(delta)
 	_update_camera(delta)
@@ -126,6 +131,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		sim.select_next_weapon()
 	elif event.is_action_pressed("next_ammo"):
 		sim.cycle_ammo()
+	elif event.is_action_pressed("toggle_firing_table"):
+		firing_table.toggle()
+	elif event.is_action_pressed("apply_solution"):
+		if not firing_table.apply_nearest():
+			hud.flash_note("Fire-control computer: research Fire Control Computers first")
 	elif event.is_action_pressed("toggle_overview"):
 		_overview = not _overview
 	elif event.is_action_pressed("retreat"):

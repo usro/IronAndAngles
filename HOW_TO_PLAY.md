@@ -62,6 +62,8 @@ The screen has three plates:
 | **Space** | **Fire** |
 | **Tab** or **E** | Next weapon (if you own several) |
 | **R** | Next ammo type |
+| **T** | **Firing table**: where your selected gun and ammo land at each angle and charge (still air) |
+| **F** | **Fire-control computer**: dials in the nearest standing target (needs the *Fire Control Computers* research) |
 | **V** | Overview camera (battery, targets and enemy on one screen) |
 | **Esc** | Retreat. This is a defeat: no payout. |
 
@@ -81,6 +83,11 @@ There's no crosshair. You **dial in angle and charge**, fire, and **correct from
 **Trebuchet tip:** it starts at 50° and 50% charge, which is far too weak. The medieval plots (220–300 m away) are hit at about **30–35° and 75–100% charge**. Start at around **30°, 85%** and adjust from there.
 
 **Railguns** (Experimental era) fire almost dead straight, so you aim them like a rifle. A railgun needs a **clear line to the targets**: its plots are level ground or slightly uphill. The angle dial moves **10× finer** for them and shows hundredths of a degree, because at 2 km, 0.05° is about 2 m. Railguns can't see the enemy gun behind the targets, so keep a howitzer in your battery to fight the duel.
+
+### Firing table and fire-control computer
+
+- Press **T** for the **firing table**, a gunner's range card for your selected gun and ammo. Each row is an elevation, each column a charge (0–100%), and each cell is where the shot lands in **still air**. **Amber** cells land in the target zone. Use it to pick a sensible first shot, then correct for wind with the last-shot trace. Railguns get a list instead: the exact elevation for each range, since wind doesn't push them.
+- Once you've researched **Fire Control Computers** (the Modern-era gate), the same panel shows the **fire-control computer**: an angle and charge for each standing target and the spotted enemy gun, corrected for the average wind. Click **Apply**, or press **F** for the nearest target. It doesn't predict gusts or your gun's own spread, so expect some misses. It's best for a fast first shot in the counter-battery duel.
 
 ### Reload and reveal
 
