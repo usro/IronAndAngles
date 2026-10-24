@@ -14,13 +14,13 @@ Start: **Main Menu → New Campaign**. You begin with **5,000 funds**, a **Trebu
 
 The map is on the left. The **Auction / Shop / Repair** tabs are on the right.
 
-1. **Pick a plot.** Each contract this week is listed with its plots. Click a plot (on the map or in the list). The panel shows:
+1. **Pick a plot.** Each contract this week is listed with its plots. Click a plot (its tag on the map, or its chip in the list). The **Selected lot** card shows:
    - **Payout:** what you're paid if you win the battle.
    - **Reserve:** the minimum bid.
    - **Plot:** the terrain type, your height advantage, and the **distance to the targets**. Closer and higher is easier.
    - **Difficulty:** how accurately the enemy fires back.
 2. **Bid.** Set an amount in the number box and click **Place sealed bid**. You get one bid per week. Bidding again replaces your old bid.
-3. **Close bidding.** The rivals (shown under "Rivals") bid too. The highest bid wins and pays it **up front**. If bids tie, the earlier bid wins.
+3. **Close bidding.** The rivals (shown under "Rival war chests") bid too. The highest bid wins and pays it **up front**. If bids tie, the earlier bid wins.
 4. Then:
    - **You won:** click **Deploy to battle**.
    - **You lost:** click **Next week** for new offers.
@@ -36,7 +36,12 @@ Other buttons:
 
 ## 2. Battle: hit the targets
 
-The battle runs **in real time**. Your battery is on the left. The **orange boxes** to the right are the targets, each with a health bar. The panel at the top left shows everything you need.
+The battle runs **in real time**. Your battery is on the left (the selected weapon is drawn in amber). The **red towers** to the right are the targets, each with a health bar. The ground is marked every 50 m from your battery.
+
+The screen has three plates:
+- **Top left:** the contract, one tower icon per target (crossed out when destroyed) and the clock.
+- **Top right:** wind, rain and air density, the **Revealed** meter, shells fired and hit, and your funds.
+- **Bottom left:** fire control: the weapon and its integrity, the **elevation dial** and the **charge column**, the ammo and its price per shot, and the **reload bar**.
 
 ### Controls
 
@@ -61,15 +66,16 @@ There's no crosshair. You **dial in angle and charge**, fire, and **correct from
 3. Correct:
    - **Fell short** → add charge. **Overshot** → reduce charge.
    - Change charge in small steps (1–3%). Hold **Shift** for precision.
-4. Read the **Wind** line. `→` pushes your shells further, `←` holds them back. Gusts make each shot vary a little.
+   The dial and the charge column also show your last shot's settings as amber ticks.
+4. Read the **wind** arrow. `→` pushes your shells further, `←` holds them back. The shaded band is the gust range: gusts make each shot vary a little.
 5. Stone balls **bounce**, and the bounce direction is a bit random. A bounce still does half damage.
 
 **Trebuchet tip:** it starts at 50° and 50% charge, which is far too weak. The medieval plots (220–300 m away) are hit at about **30–35° and 75–100% charge**. Start at around **30°, 85%** and adjust from there.
 
 ### Reload and reveal
 
-- After each shot the weapon **reloads** (the trebuchet takes 12 s). The status line shows `Reloading` and then `READY [Space]`.
-- Every shot raises **Revealed %**, and misses raise it more. Above 10%, the enemy starts **firing back** (red shells), and gets more accurate as Revealed rises. If all your weapons are destroyed, you lose.
+- After each shot the weapon **reloads** (the trebuchet takes 12 s). The reload bar fills up and then shows `READY [Space]`.
+- Every shot raises the **Revealed** meter, and misses raise it more. Past the red **return fire** mark (10%), the enemy starts **firing back** (red shells), and gets more accurate as Revealed rises. If all your weapons are destroyed, you lose.
 
 ### Winning and losing
 

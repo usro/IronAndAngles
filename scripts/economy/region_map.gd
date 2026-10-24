@@ -1,27 +1,37 @@
 extends Control
-## Region map: plots on a map, the auction, shop and repairs. Plain built-in controls for now;
-## the UI session restyles it. All rules live in StrategyController and the economy model:
-## this script only renders state and forwards clicks.
+## Region map: plots on a drafted map, the auction, shop and repairs, in the blueprint theme.
+## All rules live in StrategyController and the economy model: this script only renders state
+## and forwards clicks.
 
-const MAP_PLOT_SIZE := Vector2(150, 44)
+const MAP_PLOT_SIZE := Vector2(150, 36)
+const TAG_OFFSET := Vector2(26, -18)
+const TAB_WIDTH := 500.0
 
 var _controller := StrategyController.new()
 var _selected: Auction.Lot
 
 var _funds_label: Label
-var _map: Panel
-var _plot_buttons: Dictionary = {}  # lot key -> Button
+var _era_label: Label
+var _map: DraftedMap
+var _plot_buttons: Dictionary = {}  # lot key -> Button (map tag)
+var _offer_buttons: Dictionary = {}  # lot key -> Button (chip in the offers list)
 var _offers_box: VBoxContainer
+var _report_card: PanelContainer
 var _report_label: Label
-var _lot_label: Label
+var _lot_title: Label
+var _lot_brief: Label
+var _lot_specs: Dictionary = {}  # spec name -> value Label
+var _my_bid_label: Label
 var _bid_spin: SpinBox
 var _bid_button: Button
 var _resolve_button: Button
 var _status_label: Label
-var _outcome_label: Label
+var _outcome_card: PanelContainer
+var _outcome_box: VBoxContainer
 var _deploy_button: Button
 var _next_button: Button
-var _rivals_label: Label
+var _rivals_box: VBoxContainer
+var _auction_scroll: ScrollContainer
 var _shop_box: VBoxContainer
 var _repair_box: VBoxContainer
 
@@ -41,7 +51,8 @@ func _new_round() -> void:
 	_controller.start_round()
 	_selected = null
 	_status_label.text = ""
-	_outcome_label.text = ""
+	_clear(_outcome_box)
+	_outcome_card.visible = false
 	_build_offers()
 	_build_map_plots()
 	if not _controller.auction.lots.is_empty():
@@ -70,19 +81,36 @@ func _place_bid() -> void:
 
 
 func _resolve() -> void:
-	var lines := PackedStringArray()
+	_clear(_outcome_box)
 	for outcome in _controller.resolve():
+		var row := HBoxContainer.new()
+		_outcome_box.add_child(row)
+		var who := _label(row, outcome.contract.client_name, &"BodyLabel", true)
+		who.clip_text = true
 		if outcome.sold():
-			lines.append("%s: won by %s on %s for %d" % [outcome.contract.client_name,
-				_controller.bidder_name(outcome.winner_id), outcome.plot.display_name, outcome.price])
+			var is_mine := outcome.winner_id == Auction.PLAYER_ID
+			var winner := _label(row, "%s · %s" % [_controller.bidder_name(outcome.winner_id), outcome.plot.display_name],
+				&"CaptionLabel")
+			winner.add_theme_color_override("font_color", Blueprint.AMBER if is_mine else Blueprint.TEXT_DIM)
+			_label(row, Blueprint.money(outcome.price), &"MonoLabel")
 		else:
-			lines.append("%s: no bids met the reserve" % outcome.contract.client_name)
+			_label(row, "no bids met the reserve", &"CaptionLabel")
 	var mine := _controller.player_outcome()
-	lines.append("")
-	lines.append("You won a contract! Deploy when ready." if mine else "You won nothing this week.")
-	_outcome_label.text = "\n".join(lines)
+	var verdict := _label(_outcome_box, "CONTRACT WON — DEPLOY WHEN READY" if mine else "NOTHING WON THIS WEEK",
+		&"HeaderLabel")
+	verdict.add_theme_font_size_override("font_size", 14)
+	verdict.add_theme_color_override("font_color", Blueprint.AMBER if mine else Blueprint.TEXT_DIM)
+	_outcome_card.visible = true
 	_status_label.text = ""
 	_refresh_auction()
+	_reveal_actions()
+
+
+## Brings the outcome and Deploy / Next week into view once the tab has laid out again.
+func _reveal_actions() -> void:
+	await get_tree().process_frame
+	if is_instance_valid(_deploy_button):
+		_auction_scroll.ensure_control_visible(_deploy_button)
 
 
 func _deploy() -> void:
@@ -104,7 +132,9 @@ func _repair(id: StringName, hp: float) -> void:
 # --- Refresh ---
 
 func _on_money_changed(balance: int, _delta: int, _reason: String) -> void:
-	_funds_label.text = "Funds: %d    Era: %s" % [balance, GameConstants.era_name(GameState.player.current_era)]
+	_funds_label.text = Blueprint.money(balance)
+	_funds_label.add_theme_color_override("font_color", Blueprint.AMBER if balance >= 0 else Blueprint.RED)
+	_era_label.text = GameConstants.era_name(GameState.player.current_era).to_upper()
 	if _controller.auction:
 		_refresh_auction()
 	_refresh_store()
@@ -118,21 +148,35 @@ func _refresh_auction() -> void:
 		var b: Button = _plot_buttons[key]
 		b.button_pressed = _selected != null and _selected.key() == key
 		b.disabled = resolved
-		b.modulate = Color(1, 0.85, 0.4) if my_bid and my_bid.lot.key() == key else Color.WHITE
+	for key in _offer_buttons:
+		var chip: Button = _offer_buttons[key]
+		chip.button_pressed = _selected != null and _selected.key() == key
+		chip.disabled = resolved
+		chip.add_theme_color_override("font_color", Blueprint.AMBER if my_bid and my_bid.lot.key() == key
+			else Blueprint.INK)
+	_update_parcels()
 
 	if _selected:
 		var c := _selected.contract
 		var p := _selected.plot
-		_lot_label.text = "%s\n%s\nPlot: %s (%s, %+.0f m height, %.0f m to target)\nPayout %d   Reserve %d   Difficulty %d" % [
-			c.client_name, c.briefing, p.display_name,
-			GameConstants.TerrainProfile.keys()[p.terrain_profile].capitalize(),
-			p.height_advantage_m, p.target_distance_m, c.payout, c.reserve_price, c.difficulty]
+		_lot_title.text = "%s — %s" % [c.client_name, p.display_name]
+		_lot_brief.text = c.briefing
+		_lot_specs["PAYOUT"].text = Blueprint.money(c.payout)
+		_lot_specs["RESERVE"].text = Blueprint.money(c.reserve_price)
+		_lot_specs["DIFFICULTY"].text = "■".repeat(c.difficulty) + "□".repeat(maxi(0, 5 - c.difficulty))
+		_lot_specs["TERRAIN"].text = GameConstants.TerrainProfile.keys()[p.terrain_profile].capitalize()
+		_lot_specs["HEIGHT"].text = "%+.0f m" % p.height_advantage_m
+		_lot_specs["RANGE"].text = "%.0f m" % p.target_distance_m
 		_bid_spin.min_value = c.reserve_price
 		_bid_spin.max_value = maxi(c.reserve_price, GameState.player.money)
 	else:
-		_lot_label.text = "No contracts on offer." if auction.lots.is_empty() else "Select a plot on the map."
-	if my_bid:
-		_lot_label.text += "\nYour bid: %d on %s" % [my_bid.amount, my_bid.lot.plot.display_name]
+		_lot_title.text = "No contracts on offer." if auction.lots.is_empty() else "Select a plot on the map."
+		_lot_brief.text = ""
+		for k in _lot_specs:
+			_lot_specs[k].text = "—"
+	_my_bid_label.text = "YOUR SEALED BID: %s on %s" % [Blueprint.money(my_bid.amount), my_bid.lot.plot.display_name] \
+		if my_bid else "NO BID PLACED"
+	_my_bid_label.add_theme_color_override("font_color", Blueprint.AMBER if my_bid else Blueprint.TEXT_DIM)
 
 	var can_bid := not resolved and _selected != null
 	_bid_spin.editable = can_bid
@@ -141,10 +185,27 @@ func _refresh_auction() -> void:
 	_deploy_button.disabled = _controller.player_outcome() == null
 	_next_button.disabled = not resolved
 
-	var rival_lines := PackedStringArray(["Rivals:"])
+	_clear(_rivals_box)
+	var richest := 1
 	for rival in _controller.rivals:
-		rival_lines.append("  %s: %d" % [rival.display_name, _controller.ledger.money(rival.id)])
-	_rivals_label.text = "\n".join(rival_lines)
+		richest = maxi(richest, _controller.ledger.money(rival.id))
+	for rival in _controller.rivals:
+		var funds := _controller.ledger.money(rival.id)
+		var row := HBoxContainer.new()
+		_rivals_box.add_child(row)
+		var name_label := _label(row, rival.display_name, &"BodyLabel")
+		name_label.custom_minimum_size = Vector2(190, 0)
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.max_value = richest
+		bar.value = funds
+		bar.custom_minimum_size = Vector2(0, 8)
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(bar)
+		var amount := _label(row, Blueprint.money(funds), &"MonoLabel")
+		amount.custom_minimum_size = Vector2(64, 0)
+		amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 
 func _refresh_store() -> void:
@@ -153,85 +214,152 @@ func _refresh_store() -> void:
 	var shop := _controller.shop
 	var player := GameState.player
 	_clear(_shop_box)
-	_section(_shop_box, "Weapons")
+	_section(_shop_box, "WEAPONS")
 	for w in shop.weapon_catalog():
 		var status := shop.check_weapon(player, w.id)
-		var text := "%s  (%d)" % [w.display_name, w.purchase_cost]
-		if status != Shop.Status.OK:
-			text += "  - %s" % Shop.status_text(status)
-		_row_button(_shop_box, text, _buy_weapon.bind(w.id), status != Shop.Status.OK)
-	_section(_shop_box, "Ammo (fired shells are charged in battle; stocking costs a fee)")
-	for a in shop.ammo_catalog():
+		var card := _card(_shop_box)
 		var row := HBoxContainer.new()
-		_shop_box.add_child(row)
-		var label := Label.new()
-		label.text = "%s  x%d  (%d/shot)" % [a.display_name, player.ammo_count(a.id), a.cost_per_shell]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(label)
+		row.add_theme_constant_override("separation", 12)
+		card.add_child(row)
+		row.add_child(WeaponIcon.create(w))
+		var info := VBoxContainer.new()
+		info.add_theme_constant_override("separation", 0)
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info)
+		_label(info, w.display_name, &"ValueLabel")
+		var line := "%s · %s" % [GameConstants.era_name(w.era).to_upper(),
+			GameConstants.LauncherType.keys()[w.launcher_type]]
+		if status != Shop.Status.OK:
+			line += " · " + Shop.status_text(status)
+		var caption := _label(info, line, &"CaptionLabel")
+		if status == Shop.Status.ALREADY_OWNED:
+			caption.add_theme_color_override("font_color", Blueprint.LINE)
+		var buy := _row_button(row, "Buy  %s" % Blueprint.money(w.purchase_cost), _buy_weapon.bind(w.id),
+			status != Shop.Status.OK)
+		buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		buy.custom_minimum_size = Vector2(110, 0)
+	_section(_shop_box, "AMMUNITION  ·  stocking fee now, full shell price when fired")
+	for a in shop.ammo_catalog():
+		var card := _card(_shop_box)
+		var row := HBoxContainer.new()
+		card.add_child(row)
+		var info := VBoxContainer.new()
+		info.add_theme_constant_override("separation", 0)
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info)
+		_label(info, a.display_name, &"ValueLabel")
+		_label(info, "%s per shot" % Blueprint.money(a.cost_per_shell), &"CaptionLabel")
+		var stock := _label(row, "×%d" % player.ammo_count(a.id), &"ValueLabel")
+		stock.custom_minimum_size = Vector2(56, 0)
+		stock.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		stock.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		if player.ammo_count(a.id) == 0:
+			stock.add_theme_color_override("font_color", Blueprint.TEXT_DIM)
 		if not shop.is_ammo_unlocked(player, a.id):
-			_row_button(row, Shop.status_text(Shop.Status.LOCKED), Callable(), true)
+			_chip(row, Shop.status_text(Shop.Status.LOCKED), Callable(), true)
 			continue
 		for count in [10, 50]:
-			_row_button(row, "+%d (%d)" % [count, shop.ammo_price(a.id, count)], _buy_ammo.bind(a.id, count),
+			_chip(row, "+%d  %s" % [count, Blueprint.money(shop.ammo_price(a.id, count))], _buy_ammo.bind(a.id, count),
 				shop.check_ammo(player, a.id, count) != Shop.Status.OK)
 
 	_clear(_repair_box)
-	_section(_repair_box, "Weapon repairs")
+	_section(_repair_box, "BATTERY CONDITION")
 	if player.owned_weapons.is_empty():
-		_section(_repair_box, "You own no weapons.")
+		_label(_repair_box, "You own no weapons.", &"BodyLabel")
 	for id in player.owned_weapons:
 		var w := DataRegistry.get_weapon(id)
 		if w == null:
 			continue
+		var hp: float = player.weapon_health.get(id, 0.0)
+		var card := _card(_repair_box)
 		var row := HBoxContainer.new()
-		_repair_box.add_child(row)
-		var label := Label.new()
-		label.text = "%s  %.0f / %.0f hp  (%d per hp)" % [w.display_name, player.weapon_health.get(id, 0.0),
-			w.max_health, w.repair_cost_per_hp]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(label)
-		_row_button(row, "Full (%d)" % shop.repair_cost(player, id), _repair.bind(id, INF),
+		row.add_theme_constant_override("separation", 12)
+		card.add_child(row)
+		row.add_child(WeaponIcon.create(w))
+		var info := VBoxContainer.new()
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info)
+		_label(info, w.display_name, &"ValueLabel")
+		var bar := ProgressBar.new()
+		bar.max_value = w.max_health
+		bar.value = hp
+		bar.show_percentage = false
+		bar.custom_minimum_size = Vector2(0, 10)
+		if hp < w.max_health * 0.5:
+			var fill := (get_theme_stylebox("fill", "ProgressBar") as StyleBoxFlat).duplicate()
+			fill.bg_color = Blueprint.AMBER if hp > 0.0 else Blueprint.RED
+			bar.add_theme_stylebox_override("fill", fill)
+		info.add_child(bar)
+		_label(info, "%.0f / %.0f hp · %s per hp" % [hp, w.max_health, Blueprint.money(w.repair_cost_per_hp)],
+			&"CaptionLabel")
+		var buttons := VBoxContainer.new()
+		row.add_child(buttons)
+		_chip(buttons, "Full  %s" % Blueprint.money(shop.repair_cost(player, id)), _repair.bind(id, INF),
 			shop.check_repair(player, id) != Shop.Status.OK)
 		var affordable := shop.affordable_repair_hp(player, id)
-		_row_button(row, "What I can afford (%d)" % shop.repair_cost(player, id, affordable),
+		_chip(buttons, "What I can afford  %s" % Blueprint.money(shop.repair_cost(player, id, affordable)),
 			_repair.bind(id, affordable), affordable <= 0.0 or shop.check_repair(player, id, affordable) != Shop.Status.OK)
 
 
 func _show_last_report() -> void:
 	var report := _controller.last_settlement()
 	if report == null:
-		_report_label.visible = false
+		_report_card.visible = false
 		return
 	var contract := DataRegistry.get_contract(report.contract_id)
-	_report_label.text = "Last contract%s (%s):\n%s" % [
-		": " + contract.client_name if contract else "", "victory" if report.victory else "defeat",
-		"\n".join(report.summary_lines())]
+	_report_label.text = "LAST CONTRACT%s — %s\nNet %s · margin %d%%%s" % [
+		": " + contract.client_name.to_upper() if contract else "", "VICTORY" if report.victory else "DEFEAT",
+		Blueprint.money(report.net_profit(), true), roundi(report.margin() * 100.0),
+		" · repairs %s" % Blueprint.money(report.repair_cost) if report.repair_cost > 0 else ""]
+
+
+## Map markers follow the lots; tags are placed by _layout_plots.
+func _update_parcels() -> void:
+	if _map == null or _controller.auction == null:
+		return
+	var my_bid := _controller.auction.bid_of(Auction.PLAYER_ID)
+	var list: Array[Dictionary] = []
+	for lot in _controller.auction.lots:
+		var b: Button = _plot_buttons.get(lot.key())
+		list.append({"pos": lot.plot.map_position, "plot_id": lot.plot.id, "profile": lot.plot.terrain_profile,
+			"selected": _selected != null and _selected.key() == lot.key(),
+			"bid": my_bid != null and my_bid.lot.key() == lot.key(),
+			"tag": Rect2(b.position, b.size) if b else Rect2()})
+	_map.parcels = list
 
 
 # --- Building ---
 
 func _build() -> void:
+	BlueprintBackdrop.add_to(self, "SHEET 02 — REGION MAP")
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 16)
+	margin.add_theme_constant_override("margin_bottom", 28)
 	add_child(margin)
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 10)
 	margin.add_child(root)
 
+	var bar := PanelContainer.new()
+	bar.theme_type_variation = &"BarPanel"
+	root.add_child(bar)
 	var top := HBoxContainer.new()
-	root.add_child(top)
-	var title := Label.new()
-	title.text = "REGION MAP"
-	title.add_theme_font_size_override("font_size", 28)
-	top.add_child(title)
-	_funds_label = Label.new()
-	_funds_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_funds_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_funds_label.add_theme_font_size_override("font_size", 20)
-	top.add_child(_funds_label)
-	_row_button(top, "Research", _open_research)
+	top.add_theme_constant_override("separation", 14)
+	bar.add_child(top)
+	var title := _label(top, "REGION MAP", &"TitleLabel")
+	title.add_theme_font_size_override("font_size", 22)
+	top.add_child(VSeparator.new())
+	_label(top, "FUNDS", &"SectionLabel")
+	_funds_label = _label(top, "", &"MoneyLabel")
+	_label(top, "ERA", &"SectionLabel")
+	_era_label = _label(top, "", &"ValueLabel")
+	_era_label.add_theme_color_override("font_color", Blueprint.LINE)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(spacer)
+	_row_button(top, "Research", _open_research).theme_type_variation = &"PrimaryButton"
 	_row_button(top, "How to Play", func() -> void: add_child(HowToPlayPanel.new()))
 	_row_button(top, "Save", func() -> void: _status_label.text = "Saved" if SaveSystem.save_game() == OK else "Save failed")
 	_row_button(top, "Main Menu", SceneRouter.goto.bind(SceneRouter.Screen.MAIN_MENU))
@@ -241,26 +369,24 @@ func _build() -> void:
 	body.add_theme_constant_override("separation", 12)
 	root.add_child(body)
 
-	_map = Panel.new()
+	_map = DraftedMap.new()
 	_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_map.clip_contents = true
 	_map.resized.connect(_layout_plots)
 	body.add_child(_map)
 
 	var tabs := TabContainer.new()
-	tabs.custom_minimum_size = Vector2(500, 0)
+	tabs.custom_minimum_size = Vector2(TAB_WIDTH, 0)
 	body.add_child(tabs)
 	tabs.add_child(_build_auction_tab())
 	_shop_box = _scroll_tab(tabs, "Shop")
 	_repair_box = _scroll_tab(tabs, "Repair")
 
-	_status_label = Label.new()
-	_status_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
-	root.add_child(_status_label)
+	_status_label = _label(root, "", &"StatusLabel")
 
 
 func _build_auction_tab() -> Control:
 	var scroll := ScrollContainer.new()
+	_auction_scroll = scroll
 	scroll.name = "Auction"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var box := VBoxContainer.new()
@@ -268,52 +394,104 @@ func _build_auction_tab() -> Control:
 	box.add_theme_constant_override("separation", 8)
 	scroll.add_child(box)
 
-	_report_label = _wrapped_label(box)
-	_section(box, "Contracts this week (click a plot to select it)")
+	_report_card = _card(box)
+	_report_label = _label(_report_card, "", &"MonoLabel")
+	_report_label.add_theme_font_size_override("font_size", 12)
+
+	_section(box, "CONTRACTS THIS WEEK")
 	_offers_box = VBoxContainer.new()
+	_offers_box.add_theme_constant_override("separation", 6)
 	box.add_child(_offers_box)
-	box.add_child(HSeparator.new())
-	_lot_label = _wrapped_label(box)
+
+	_section(box, "SELECTED LOT")
+	var lot := _card(box)
+	lot.theme_type_variation = &"SelectedCardPanel"
+	var lot_box := VBoxContainer.new()
+	lot.add_child(lot_box)
+	_lot_title = _label(lot_box, "", &"HeaderLabel")
+	_lot_title.add_theme_font_size_override("font_size", 15)
+	_lot_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lot_brief = _label(lot_box, "", &"BodyLabel")
+	_lot_brief.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lot_brief.custom_minimum_size = Vector2(420, 0)
+	var specs := GridContainer.new()
+	specs.columns = 3
+	specs.add_theme_constant_override("h_separation", 18)
+	specs.add_theme_constant_override("v_separation", 4)
+	lot_box.add_child(specs)
+	for key in ["PAYOUT", "RESERVE", "DIFFICULTY", "TERRAIN", "HEIGHT", "RANGE"]:
+		var cell := VBoxContainer.new()
+		cell.add_theme_constant_override("separation", -2)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		specs.add_child(cell)
+		_label(cell, key, &"CaptionLabel")
+		var value := _label(cell, "—", &"ValueLabel")
+		if key == "PAYOUT":
+			value.add_theme_color_override("font_color", Blueprint.AMBER)
+		_lot_specs[key] = value
+	_my_bid_label = _label(lot_box, "", &"StatusLabel")
 
 	var bid_row := HBoxContainer.new()
 	box.add_child(bid_row)
 	_bid_spin = SpinBox.new()
 	_bid_spin.step = 10
+	_bid_spin.prefix = "BID"
 	_bid_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bid_row.add_child(_bid_spin)
 	_bid_button = _row_button(bid_row, "Place sealed bid", _place_bid)
+	_bid_button.theme_type_variation = &"PrimaryButton"
 	_resolve_button = _row_button(box, "Close bidding", _resolve)
-	_outcome_label = _wrapped_label(box)
+
+	_outcome_card = _card(box)
+	_outcome_box = VBoxContainer.new()
+	_outcome_card.add_child(_outcome_box)
 	var action_row := HBoxContainer.new()
 	box.add_child(action_row)
 	_deploy_button = _row_button(action_row, "Deploy to battle", _deploy)
+	_deploy_button.theme_type_variation = &"PrimaryButton"
+	_deploy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_next_button = _row_button(action_row, "Next week", _new_round)
-	box.add_child(HSeparator.new())
-	_rivals_label = _wrapped_label(box)
+	_next_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	_section(box, "RIVAL WAR CHESTS")
+	_rivals_box = VBoxContainer.new()
+	box.add_child(_rivals_box)
 	return scroll
 
 
 func _build_offers() -> void:
 	_clear(_offers_box)
+	_offer_buttons.clear()
 	for contract in _controller.offers:
-		var row := HBoxContainer.new()
-		_offers_box.add_child(row)
-		var label := Label.new()
-		label.text = "%s  - payout %d, reserve %d" % [contract.client_name, contract.payout, contract.reserve_price]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(label)
+		var card := _card(_offers_box)
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 4)
+		card.add_child(col)
+		var head := HBoxContainer.new()
+		col.add_child(head)
+		_label(head, contract.client_name, &"ValueLabel", true)
+		var money := _label(head, "PAYOUT %s · RESERVE %s" % [Blueprint.money(contract.payout),
+			Blueprint.money(contract.reserve_price)], &"CaptionLabel")
+		money.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var chips := HBoxContainer.new()
+		col.add_child(chips)
 		for lot in _controller.auction.lots_for(contract):
-			_row_button(row, lot.plot.display_name, _select.bind(lot))
+			var chip := _chip(chips, "◇ " + lot.plot.display_name, _select.bind(lot))
+			chip.toggle_mode = true
+			_offer_buttons[lot.key()] = chip
 
 
 func _build_map_plots() -> void:
-	_clear(_map)
+	for b in _plot_buttons.values():
+		_map.remove_child(b)
+		b.queue_free()
 	_plot_buttons.clear()
 	for lot in _controller.auction.lots:
 		var b := Button.new()
+		b.theme_type_variation = &"ParcelButton"
 		b.toggle_mode = true
-		b.text = "%s\n%s" % [lot.plot.display_name, lot.contract.client_name]
-		b.add_theme_font_size_override("font_size", 12)
+		b.text = "%s\n%s" % [lot.plot.display_name.to_upper(), lot.contract.client_name]
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.size = MAP_PLOT_SIZE
 		b.pressed.connect(_select.bind(lot))
 		_map.add_child(b)
@@ -321,7 +499,8 @@ func _build_map_plots() -> void:
 	_layout_plots()
 
 
-## Places plot buttons by PlotData.map_position; plots shared by several contracts stack downward.
+## Places plot tags beside their parcel (PlotData.map_position); plots shared by several contracts
+## stack downward. Tags flip to the left of the parcel near the right edge.
 func _layout_plots() -> void:
 	var used := {}
 	for lot in _controller.auction.lots if _controller.auction else []:
@@ -330,8 +509,12 @@ func _layout_plots() -> void:
 			continue
 		var stack: int = used.get(lot.plot.id, 0)
 		used[lot.plot.id] = stack + 1
-		var pos := lot.plot.map_position * _map.size - MAP_PLOT_SIZE / 2.0 + Vector2(0, stack * (MAP_PLOT_SIZE.y + 4))
-		b.position = pos.clamp(Vector2.ZERO, (_map.size - MAP_PLOT_SIZE).max(Vector2.ZERO))
+		var marker := lot.plot.map_position * _map.size
+		var pos := marker + TAG_OFFSET + Vector2(0, stack * (MAP_PLOT_SIZE.y + 4))
+		if pos.x + MAP_PLOT_SIZE.x > _map.size.x - 8:
+			pos.x = marker.x - TAG_OFFSET.x - MAP_PLOT_SIZE.x
+		b.position = pos.clamp(Vector2(8, 8), (_map.size - MAP_PLOT_SIZE - Vector2(8, 8)).max(Vector2.ZERO))
+	_update_parcels()
 
 
 # --- Widget helpers ---
@@ -343,21 +526,29 @@ func _scroll_tab(tabs: TabContainer, title: String) -> VBoxContainer:
 	tabs.add_child(scroll)
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 6)
 	scroll.add_child(box)
 	return box
 
 
 func _section(parent: Node, text: String) -> void:
+	var l := _label(parent, text, &"SectionLabel")
+	l.add_theme_color_override("font_color", Blueprint.LINE)
+
+
+func _card(parent: Node) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"CardPanel"
+	parent.add_child(card)
+	return card
+
+
+func _label(parent: Node, text: String, variation: StringName, expand := false) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_color_override("font_color", Color(0.7, 0.8, 1.0))
-	parent.add_child(l)
-
-
-func _wrapped_label(parent: Node) -> Label:
-	var l := Label.new()
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(440, 0)
+	l.theme_type_variation = variation
+	if expand:
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(l)
 	return l
 
@@ -369,6 +560,13 @@ func _row_button(parent: Node, text: String, on_press: Callable, disabled := fal
 	if on_press.is_valid():
 		b.pressed.connect(on_press)
 	parent.add_child(b)
+	return b
+
+
+func _chip(parent: Node, text: String, on_press: Callable, disabled := false) -> Button:
+	var b := _row_button(parent, text, on_press, disabled)
+	b.theme_type_variation = &"ChipButton"
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return b
 
 
