@@ -5,8 +5,8 @@ extends CanvasLayer
 ## a key strip and the end-of-battle stamp. Only reads the sim; battle.gd forwards input.
 
 const KEY_HINTS := [["W/S", "elevation"], ["A/D", "charge"], ["Shift", "fine"], ["Wheel", "elev · +Shift charge"],
-	["Space", "fire"], ["Tab", "weapon"], ["R", "ammo"], ["T", "table"], ["F", "computer"], ["X", "split"], ["V", "overview"],
-	["Esc", "retreat"]]
+	["Space", "fire"], ["Tab", "weapon"], ["R", "ammo"], ["T", "table"], ["F", "computer"], ["G", "relocate"],
+	["X", "split"], ["V", "overview"], ["Esc", "retreat"]]
 
 var _contract_label: Label
 var _clock_label: Label
@@ -237,6 +237,11 @@ func _status(sim: BattleSim, m: WeaponMount) -> void:
 		_reload.value_text = "DESTROYED"
 		_reload.fraction = 0.0
 		_reload.color = Blueprint.RED
+	elif sim.relocating_left > 0.0:
+		_reload.label = "RELOCATING"
+		_reload.value_text = "%.1f s" % sim.relocating_left
+		_reload.fraction = 1.0 - sim.relocating_left / BattleSim.RELOCATE_S
+		_reload.color = Blueprint.AMBER
 	elif m.is_firing():
 		_reload.label = "FIRING"
 		_reload.value_text = "%d left in salvo" % m.salvo_left

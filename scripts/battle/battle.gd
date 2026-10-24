@@ -51,6 +51,12 @@ var _observer_label: Label
 var _ranging := false
 var _range_point := Vector2.INF
 var _range_label: Label
+## Forward-observer calls, newest first ("OVER 25 m").
+var observer_calls: Array[String] = []
+var _calls_label: Label
+const OBSERVER_CALLS_SHOWN := 3
+## A shell landing within this distance of the target's centre is called "on line".
+const OBSERVER_CLOSE_M := 3.0
 
 var _overlay: Node2D
 var _sky: ColorRect
@@ -118,6 +124,7 @@ func _ready() -> void:
 	sim.shell_launched.connect(_on_shell_launched)
 	sim.blast.connect(_on_blast)
 	sim.ended.connect(_on_ended)
+	sim.shell_observed.connect(_on_shell_observed)
 	firing_table = FiringTablePanel.new()
 	firing_table.sim = sim
 	hud.add_child(firing_table)
@@ -175,6 +182,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("apply_solution"):
 		if not firing_table.apply_nearest():
 			hud.flash_note("Fire-control computer: research Fire Control Computers first")
+	elif event.is_action_pressed("relocate"):
+		if not sim.relocate():
+			hud.flash_note("Can't relocate yet (%.0f s)" % maxf(sim.relocate_cooldown_left, sim.relocating_left)
+				if sim.relocate_cooldown_left > 0.0 else "Can't relocate now")
+		else:
+			hud.flash_note("Relocating: guns silent for %.0f s" % BattleSim.RELOCATE_S)
 	elif event.is_action_pressed("toggle_split"):
 		set_split(not split)
 	elif event.is_action_pressed("toggle_overview"):
@@ -319,6 +332,40 @@ func _camera_rect() -> Rect2:
 	return Rect2(rect.get_center() - size * 0.5, size)
 
 
+# --- Forward observer ---
+
+## The observer calls where a shell came down relative to the nearest standing target (or the
+## spotted enemy gun): "OVER 25 m", "SHORT 40 m", "ON LINE" or "TARGET HIT".
+func _on_shell_observed(position_m: Vector2, hit: bool) -> void:
+	var call := observer_call(sim, position_m, hit)
+	observer_calls.push_front(call)
+	observer_calls.resize(mini(observer_calls.size(), OBSERVER_CALLS_SHOWN))
+	_calls_label.text = "\n".join(observer_calls.map(func(c: String) -> String: return "▸ " + c))
+	if not _split_active():
+		hud.flash_note("OBSERVER: " + call)
+
+
+static func observer_call(s: BattleSim, position_m: Vector2, hit: bool) -> String:
+	if hit:
+		return "TARGET HIT"
+	var nearest := Vector2.INF
+	for t in s.targets:
+		if not t.is_destroyed():
+			var c := t.rect_m().get_center()
+			if nearest == Vector2.INF or absf(c.x - position_m.x) < absf(nearest.x - position_m.x):
+				nearest = c
+	if s.enemy_spotted and s.enemy_gun_alive():
+		var g := s.enemy_gun_rect().get_center()
+		if nearest == Vector2.INF or absf(g.x - position_m.x) < absf(nearest.x - position_m.x):
+			nearest = g
+	if nearest == Vector2.INF:
+		return "SPLASH"
+	var dx := position_m.x - nearest.x
+	if absf(dx) <= OBSERVER_CLOSE_M:
+		return "ON LINE, CLOSE"
+	return "%s %d m" % ["OVER" if dx > 0.0 else "SHORT", roundi(absf(dx) / 5.0) * 5]
+
+
 # --- Rangefinder ---
 
 ## While the right mouse button is held: the ground point under the cursor, as range and height
@@ -399,6 +446,16 @@ func _build_split_screen() -> void:
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		root.add_child(l)
 		if spec[1] == "":
+			_calls_label = Label.new()
+			_calls_label.theme_type_variation = &"MonoLabel"
+			_calls_label.add_theme_color_override("font_color", Blueprint.AMBER)
+			_calls_label.anchor_left = 0.5
+			_calls_label.anchor_right = 0.5
+			_calls_label.offset_left = 16.0
+			_calls_label.offset_top = 114.0
+			_calls_label.grow_horizontal = Control.GROW_DIRECTION_END
+			_calls_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			root.add_child(_calls_label)
 			# Right of the divider, clear of the conditions plate in the top-right corner.
 			_observer_label = l
 			l.anchor_left = 0.5

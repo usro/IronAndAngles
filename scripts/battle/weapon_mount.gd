@@ -35,6 +35,8 @@ func _init(p_weapon: WeaponData, p_position_m: Vector2, p_health: float) -> void
 	position_m = p_position_m
 	health = p_health
 	elevation_deg = (weapon.elevation_min_deg + weapon.elevation_max_deg) * 0.5
+	# Start on a real propellant increment (the middle one).
+	charge = increments()[charge_increment()]
 	_lockout_total = lockout_time()
 
 

@@ -56,7 +56,9 @@ The screen has three plates:
 | Key | Action |
 |---|---|
 | **W / S** or **↑ / ↓** | Raise / lower the **elevation** (barrel angle) |
-| **D / A** or **→ / ←** | More / less **charge** (launch power) |
+| **D / A** or **→ / ←** | Next / previous **charge** (propellant increment: Charge 1 = weakest) |
+| hold **right mouse** | **Rangefinder**: read the range and height of any ground point; release to send it to the firing table |
+| **G** | **Relocate** ("shoot and scoot"): guns silent for 15 s, then the enemy has lost most of its fix on you (60 s cooldown) |
 | hold **Shift** | Fine adjustment, 10× slower |
 | Mouse wheel / Shift + wheel | Elevation / charge in small steps |
 | **Space** | **Fire** |
@@ -70,25 +72,36 @@ The screen has three plates:
 
 ### How to aim
 
-There's no crosshair. You **dial in angle and charge**, fire, and **correct from where the shot landed**:
+There's no crosshair. You **pick a charge, dial an elevation**, fire, and **correct from where the shot landed** (see *Gunnery* below for the full crew drill):
 
-1. Watch the shell fly. The camera follows it, then comes back.
-2. Your previous shot stays on screen as a **faint line with a circle where it landed**, labelled with the angle and charge you used (`last: 31.0° / 88.0%`).
-3. Correct:
-   - **Fell short** → add charge. **Overshot** → reduce charge.
-   - Change charge in small steps (1–3%). Hold **Shift** for precision.
-   The dial and the charge column also show your last shot's settings as amber ticks.
+1. Watch the shell fly. In split screen it leaves on the left and lands on the right; the minimap at the top shows the whole flight.
+2. Your previous shot stays on screen as a **faint line with a circle where it landed**, labelled with the angle and charge you used, and the **observer calls it** (SHORT 40 m, OVER 25 m...).
+3. Correct with **elevation** (W/S, hold **Shift** for fine steps):
+   - At a **low angle** (under 45°): short → raise the barrel, over → lower it.
+   - At a **high angle** (over 45°): it's the other way round. Short → lower the barrel toward 45°, over → raise it.
+   - If no elevation reaches, change **charge** (A/D).
 4. Read the **wind** arrow. `→` pushes your shells further, `←` holds them back. The shaded band is the gust range: gusts make each shot vary a little.
 5. Stone balls **bounce**, and the bounce direction is a bit random. A bounce still does half damage.
 
-**Trebuchet tip:** it starts at 50° and 50% charge, which is far too weak. The medieval plots (220–300 m away) are hit at about **30–35° and 75–100% charge**. Start at around **30°, 85%** and adjust from there.
+**Trebuchet tip:** the medieval plots (220–300 m away) need the basic trebuchet on **Charge 5** (it reaches 190–300 m); the Great Trebuchet covers them on Charge 4 or 5. The firing table (T) is pre-filled with the target's range in the Medieval era: read the elevation off its amber line.
 
 **Railguns** (Experimental era) fire almost dead straight, so you aim them like a rifle. A railgun needs a **clear line to the targets**: its plots are level ground or slightly uphill. The angle dial moves **10× finer** for them and shows hundredths of a degree, because at 2 km, 0.05° is about 2 m. Railguns can't see the enemy gun behind the targets, so keep a howitzer in your battery to fight the duel.
 
-### Firing table and fire-control computer
+### Gunnery: how real crews aim
 
-- Press **T** for the **firing table**, a gunner's range card for your selected gun and ammo. Each row is an elevation, each column a charge (0–100%), and each cell is where the shot lands in **still air**. **Amber** cells land in the target zone. Use it to pick a sensible first shot, then correct for wind with the last-shot trace. Railguns get a list instead: the exact elevation for each range, since wind doesn't push them.
-- Once you've researched **Fire Control Computers** (the Modern-era gate), the same panel shows the **fire-control computer**: an angle and charge for each standing target and the spotted enemy gun, corrected for the average wind. Click **Apply**, or press **F** for the nearest target. It doesn't predict gusts or your gun's own spread, so expect some misses. It's best for a fast first shot in the counter-battery duel.
+You aim the way artillery crews do:
+
+1. **Choose a charge.** Charge is a fixed **propellant increment** (A/D steps through Charge 1–5; the heavy howitzer has 8). Each charge reaches a band of ranges; the **elevation** (W/S) fine-tunes inside it.
+2. **Measure the target.** Hold the **right mouse button** on the target in either pane: the **rangefinder** reads its **range** and **height** (above + or below − your battery). Release, and the numbers go into the firing table. In the Medieval era the table is pre-filled for you; later you measure yourself.
+3. **Read the firing table (T).** It's laid out like a real one: for your gun, ammo and **current charge**, each **RANGE** row gives the **LOW** and **HIGH** angle elevation, the **time of flight**, and the **wind** correction (meters the shot moves per 1 m/s of tailwind). The amber line reads off your measured range: the elevation to dial. If it says "out of reach", change charge.
+4. **Correct for wind yourself.** Tailwind (→) of 3 m/s and WIND +1.5 means the shot lands about 4–5 m long: aim a little shorter (lower elevation at low angle).
+5. **Fire and listen to the observer.** After each shot the forward observer calls it: **SHORT 40 m**, **OVER 25 m**, **ON LINE, CLOSE** or **TARGET HIT**. Bracket like a real crew: once you have one short and one over, split the difference.
+
+**Fire-control computer (F).** Once you've researched **Fire Control Computers** (the Modern-era gate), the panel also shows a charge and elevation for each standing target and the spotted enemy gun, corrected for the mean wind. **Apply** (or **F** for the nearest target) dials it in. It doesn't predict gusts or spread.
+
+**Shoot and scoot (G).** Every shot raises Revealed. When the enemy starts landing near you, **relocate**: your guns go silent for 15 s while they move, then the enemy has lost most of its fix (Revealed drops to a quarter). It has a 60 s cooldown.
+
+**Split screen and minimap.** When the targets are off-screen, the battle splits: your battery on the left, the observer's view of the targets on the right (X toggles). The strip at the top is a **minimap** of the whole field, so you can follow every shell from launch to impact.
 
 ### Reload and reveal
 

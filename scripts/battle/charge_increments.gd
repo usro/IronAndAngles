@@ -15,8 +15,11 @@ static var _cache: Dictionary = {}
 
 ## Charge values (0..1) of the weapon's increments, weakest first.
 static func for_weapon(w: WeaponData) -> PackedFloat32Array:
-	if _cache.has(w.id):
-		return _cache[w.id]
+	# Keyed on the stats that matter, not just the id (tests build guns that share ids).
+	var key := "%s/%s/%s/%s/%s/%s" % [w.id, w.muzzle_velocity_min, w.muzzle_velocity_max, w.elevation_min_deg,
+		w.elevation_max_deg, w.allowed_ammo]
+	if _cache.has(key):
+		return _cache[key]
 	var result := _spaced(MIN_COUNT, w, true)
 	if not w.is_direct_fire() and w.launcher_type != GameConstants.LauncherType.ORBITAL and not w.allowed_ammo.is_empty():
 		var ammo := DataRegistry.get_ammo(w.allowed_ammo[0])
@@ -25,7 +28,7 @@ static func for_weapon(w: WeaponData) -> PackedFloat32Array:
 				result = _spaced(n, w, false)
 				if _covers(w, ammo, result):
 					break
-	_cache[w.id] = result
+	_cache[key] = result
 	return result
 
 
@@ -45,6 +48,11 @@ static func nearest(w: WeaponData, charge: float) -> int:
 
 static func _spaced(n: int, w: WeaponData, linear: bool) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
+	if w.muzzle_velocity_max - w.muzzle_velocity_min <= 1e-6:
+		# One fixed velocity: the increments are nominal.
+		for i in n:
+			out.append(i / float(n - 1))
+		return out
 	var lo := maxf(w.muzzle_velocity_min, 1.0)
 	var hi := maxf(w.muzzle_velocity_max, lo + 1.0)
 	for i in n:

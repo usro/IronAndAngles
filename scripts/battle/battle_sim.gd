@@ -28,6 +28,13 @@ const ENEMY_RETRY_S := 1.0
 const ENEMY_GUN_HEALTH_SCALE := 1.0
 ## Destroying the enemy gun adds this share of the payout on victory.
 const COUNTER_BATTERY_BONUS := 0.1
+## Shoot and scoot: the battery stops firing while it moves, then the enemy has lost most of
+## its fix on it (reveal_level is multiplied by RELOCATE_REVEAL_KEEP). Can't be spammed.
+const RELOCATE_S := 15.0
+const RELOCATE_COOLDOWN_S := 60.0
+const RELOCATE_REVEAL_KEEP := 0.25
+## How far along the pad the guns move (meters, either way).
+const RELOCATE_SHIFT_M := 3.0
 ## Battery weapons stand this far apart (closer if many share the pad).
 const MOUNT_SPACING_M := 5.0
 const MAX_FLIGHT_TIME_S := 60.0
@@ -35,6 +42,8 @@ const MAX_FLIGHT_TIME_S := 60.0
 ## Set by the AI session to replace the default counter-battery brain (see EnemyBrain).
 static var brain_factory: Callable
 
+## Forward-observer report: where a player shell first came down, and whether it did damage.
+signal shell_observed(position_m: Vector2, hit: bool)
 ## A live shell started (player or enemy). Fragments come later through `flight.fragments`.
 signal shell_launched(flight: ShellFlight, enemy: bool)
 ## Something went off at position_m (impact, bounce, airburst). For the view.
@@ -71,6 +80,8 @@ var enemy_health := 0.0
 var enemy_max_health := 0.0
 ## The enemy gun is hidden until its first muzzle flash (or until a shell hits it).
 var enemy_spotted := false
+var relocating_left := 0.0
+var relocate_cooldown_left := 0.0
 ## Share of the enemy ammo's damage that reaches the battery.
 var enemy_damage_scale := ENEMY_DAMAGE_SCALE
 
@@ -150,12 +161,37 @@ func adjust_designator(m: WeaponMount, dx_m: float) -> void:
 func pull_trigger() -> bool:
 	if outcome != Outcome.NONE:
 		return false
+	if relocating_left > 0.0:
+		return false
 	var m := selected_mount()
 	if m == null or not m.is_ready() or m.ammo_id == &"" or player.ammo_count(m.ammo_id) <= 0:
 		return false
 	if not m.pull_trigger():
 		return false
 	_fire_due(m, m.tick(0.0))
+	return true
+
+
+func can_relocate() -> bool:
+	return outcome == Outcome.NONE and relocating_left <= 0.0 and relocate_cooldown_left <= 0.0 \
+		and mounts.any(func(m: WeaponMount) -> bool: return m.is_alive())
+
+
+## Shoot and scoot: stop firing for RELOCATE_S while the guns move a few meters along the pad; the
+## enemy's fix on the battery (reveal_level) mostly goes. Returns false if not allowed right now.
+func relocate() -> bool:
+	if not can_relocate():
+		return false
+	relocating_left = RELOCATE_S
+	relocate_cooldown_left = RELOCATE_COOLDOWN_S
+	var shift := RELOCATE_SHIFT_M * (1.0 if _rng.randf() < 0.5 else -1.0)
+	var pad := map.battery_position_m().x
+	for m in mounts:
+		m.abort_salvo()
+		var x := clampf(m.position_m.x + shift, pad - TerrainGenerator.BATTERY_PAD_HALF_M + 1.5,
+			pad + TerrainGenerator.BATTERY_PAD_HALF_M - 1.5)
+		m.position_m = Vector2(x, map.surface_height_at(x))
+	_raise_reveal(reveal_level * RELOCATE_REVEAL_KEEP)
 	return true
 
 
@@ -170,6 +206,8 @@ func tick(delta: float) -> void:
 	if outcome != Outcome.NONE:
 		return
 	elapsed += delta
+	relocating_left = maxf(0.0, relocating_left - delta)
+	relocate_cooldown_left = maxf(0.0, relocate_cooldown_left - delta)
 	for m in mounts:
 		var due := m.tick(delta)
 		if due > 0:
@@ -476,7 +514,8 @@ func _designate_for(p: ShotParams) -> Vector2:
 
 func _launch(p: ShotParams, hit_test: Callable, enemy: bool, orbital: bool) -> void:
 	var flight := Ballistics.launch(p, hit_test)
-	_shots[flight] = {"root": flight, "enemy": enemy, "orbital": orbital, "hit": false, "ammo": p.ammo}
+	_shots[flight] = {"root": flight, "enemy": enemy, "orbital": orbital, "hit": false, "ammo": p.ammo,
+		"observed": false}
 	flights.append(flight)
 	shell_launched.emit(flight, enemy)
 
@@ -533,6 +572,10 @@ func _detonate(rec: Dictionary, ammo: AmmoData, pos: Vector2, damage_scale: floa
 	if dealt > 0.0 and not rec.enemy and not rec.hit:
 		rec["hit"] = true
 		result.shells_hit += 1
+	# The observer reports each shell once, where it first came down.
+	if not rec.enemy and not rec.get("observed", true):
+		rec["observed"] = true
+		shell_observed.emit(pos, dealt > 0.0)
 
 
 func _on_settled(f: ShellFlight) -> void:
