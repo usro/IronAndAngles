@@ -151,6 +151,19 @@ Code in `scripts/ui/`, theme and fonts in `themes/`. Every screen draws with the
 
 Fonts are Inter and JetBrains Mono, bundled under the SIL OFL (`themes/fonts/`).
 
+## Audio
+
+Code in `scripts/fx/`, sounds in `audio/`, tests in `tests/fx/`. The `AudioDirector` autoload (registered last) only listens: it turns EventBus facts into sound and never changes game state.
+
+| Piece | Role |
+|---|---|
+| `audio/tools/generate_sounds.py` | Synthesizes every `.wav` (44.1 kHz mono, standard-library Python, fixed seeds). Regenerate with `python3 audio/tools/generate_sounds.py`, then `$GODOT --headless --path . --import`. No downloaded samples. The three loops (`menu_theme`, `wind`, `rain`) have `edit/loop_mode=2` in their `.import`. |
+| `default_bus_layout.tres` | `Master` (compressor + hard limiter) ← `SFX` ← `UI`, `Ambience`; `Master` ← `Music`. The director adds 16 `SFX Voice N` buses at runtime (low-pass + panner each) for placed sounds. |
+| `AudioMath` | Pure propagation math: delay = distance / 343 m/s, gain −10·log10(1 + d/60 m), air low-pass 18 kHz·e^(−d/900 m), pan by screen x. |
+| `SoundBank` | Sound id → file, bus, level and pitch variation; launch/reload sound per `LauncherType`, impact per `DamageType` (crater ≥ 8 m = massive), size from `explosion_radius_m`. |
+| `AudioDirector` | Schedules placed sounds by distance from the listener (the battery, `BattleSim.battery_position_m()` + 2 m), on the wall clock. Reads the battle scene's `sim` and `camera` (never writes): reload sounds when a mount becomes ready, a click on weapon/ammo change, the enemy gun's far boom and an incoming whistle timed to land with the shell (`sim.shell_launched`), victory/defeat stings (`sim.ended`). UI clicks/hovers attach to every `BaseButton` via `SceneTree.node_added`. On the dummy driver (headless) it schedules and logs to `played` but plays nothing. |
+| `AudioSettings`, `AudioSettingsPanel` | Master / effects / music sliders (0..1) saved in `user://audio_settings.cfg`; panel opened from the main menu. |
+
 ## Running
 
 ```bash
