@@ -44,6 +44,10 @@ var split := false
 var _observer: ObserverPane
 var _split_layer: CanvasLayer
 var _observer_label: Label
+## Rangefinder: held right mouse button; the measured ground point (meters) or INF.
+var _ranging := false
+var _range_point := Vector2.INF
+var _range_label: Label
 
 var _overlay: Node2D
 var _sky: ColorRect
@@ -102,6 +106,10 @@ func _ready() -> void:
 	_build_split_screen()
 	hud = BattleHud.new()
 	add_child(hud)
+	_range_label = Label.new()
+	_range_label.theme_type_variation = &"StatusLabel"
+	_range_label.visible = false
+	hud.add_child(_range_label)
 
 	sim = BattleSim.new(contract, plot, GameState.player, terrain, GameState.rng.randi())
 	sim.shell_launched.connect(_on_shell_launched)
@@ -127,6 +135,7 @@ func _process(delta: float) -> void:
 		if _end_left <= 0.0 and not _committed:
 			_finish()
 	firing_table.refresh()
+	_update_rangefinder()
 	_update_trails()
 	_update_blasts(delta)
 	_update_camera(delta)
@@ -144,6 +153,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		sim.select_next_weapon()
 	elif event.is_action_pressed("next_ammo"):
 		sim.cycle_ammo()
+	elif event.is_action_pressed("charge_up") or event.is_action_pressed("charge_down"):
+		var m := sim.selected_mount()
+		if m and not m.is_orbital():
+			m.step_charge(1 if event.is_action_pressed("charge_up") else -1)
 	elif event.is_action_pressed("toggle_firing_table"):
 		firing_table.toggle()
 	elif event.is_action_pressed("apply_solution"):
@@ -155,6 +168,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		_overview = not _overview
 	elif event.is_action_pressed("retreat"):
 		sim.retreat()
+	elif event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
+		_ranging = event.pressed
+		if not _ranging and _range_point != Vector2.INF:
+			var m := _measure(_range_point)
+			firing_table.set_measurement(m.x, m.y)
+			if not firing_table.visible:
+				firing_table.toggle()
+		_range_label.visible = _ranging
 	elif event is InputEventMouseButton and event.pressed:
 		var mb := event as InputEventMouseButton
 		var dir := 0
@@ -178,8 +199,7 @@ func _read_held_input(delta: float) -> void:
 		return
 	if elev != 0.0:
 		m.adjust_elevation(elev * WeaponMount.ELEVATION_RATE_DEG * m.elevation_scale() * delta / fine)
-	if chg != 0.0:
-		m.adjust_charge(chg * WeaponMount.CHARGE_RATE * delta / fine)
+	# Charge moves in fixed increments, one per key press (see _unhandled_input).
 
 
 func _wheel(dir: int, shift: bool) -> void:
@@ -189,7 +209,7 @@ func _wheel(dir: int, shift: bool) -> void:
 	if m.is_orbital():
 		sim.adjust_designator(m, dir * (5.0 if shift else 1.0))
 	elif shift:
-		m.adjust_charge(dir * WHEEL_STEP_CHARGE)
+		m.step_charge(dir)
 	else:
 		m.adjust_elevation(dir * WHEEL_STEP_DEG * m.elevation_scale())
 
@@ -284,6 +304,39 @@ func _camera_rect() -> Rect2:
 	# Keep the aspect of the screen and at least the home view's size.
 	var size := Vector2(maxf(rect.size.x, HOME_VIEW_M.x), maxf(rect.size.y, HOME_VIEW_M.y))
 	return Rect2(rect.get_center() - size * 0.5, size)
+
+
+# --- Rangefinder ---
+
+## While the right mouse button is held: the ground point under the cursor, as range and height
+## from the battery. Releasing it writes them into the firing table.
+func _update_rangefinder() -> void:
+	if not _ranging:
+		_range_point = Vector2.INF
+		return
+	var screen := get_viewport().get_mouse_position()
+	var world := _screen_to_world_m(screen)
+	var x := clampf(world.x, sim.bounds_m().position.x, sim.bounds_m().end.x)
+	_range_point = Vector2(x, sim.map.surface_height_at(x))
+	var m := _measure(_range_point)
+	_range_label.text = "RANGE %.0f m   HEIGHT %+.0f m" % [m.x, m.y]
+	_range_label.position = screen + Vector2(16, -28)
+
+
+## Range (x) and height (y, + = above the battery) of a ground point.
+func _measure(point_m: Vector2) -> Vector2:
+	var battery := sim.battery_position_m()
+	return Vector2(point_m.x - battery.x, battery.y - point_m.y)
+
+
+func _screen_to_world_m(screen: Vector2) -> Vector2:
+	var vp := get_viewport_rect().size
+	var px: Vector2
+	if _split_active() and screen.x > vp.x * 0.5:
+		px = _observer.camera.get_canvas_transform().affine_inverse() * (screen - Vector2(vp.x * 0.5, 0.0))
+	else:
+		px = get_viewport().get_canvas_transform().affine_inverse() * screen
+	return px / GameConstants.PIXELS_PER_METER
 
 
 # --- Split screen ---
@@ -402,6 +455,8 @@ func _update_blasts(delta: float) -> void:
 func _draw_overlay() -> void:
 	var px := GameConstants.PIXELS_PER_METER
 	var line_w := 1.5 / camera.zoom.x
+	if _range_point != Vector2.INF:
+		BattleArt.draw_crosshair(_overlay, _range_point * px, 10.0 / camera.zoom.x, Blueprint.AMBER, line_w)
 
 	_range_marks(line_w)
 

@@ -210,6 +210,7 @@ func refresh(sim: BattleSim) -> void:
 	_dial.queue_redraw()
 	_charge.alive = m.is_alive()
 	_charge.charge = m.charge
+	_charge.increments = m.increments()
 	_charge.velocity = m.muzzle_velocity()
 	_charge.last_charge = last.get("charge", NAN)
 	_charge.visible = not m.is_orbital()

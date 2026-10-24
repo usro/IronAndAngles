@@ -115,6 +115,23 @@ func adjust_charge(delta: float) -> void:
 	charge = clampf(charge + delta, 0.0, 1.0)
 
 
+## Propellant: the player picks one of the weapon's fixed increments (Charge 1..N, like charge
+## zones or mortar rings; see ChargeIncrements); elevation is the fine control.
+func increments() -> PackedFloat32Array:
+	return ChargeIncrements.for_weapon(weapon)
+
+
+## Nearest increment (0-based) to the current charge.
+func charge_increment() -> int:
+	return ChargeIncrements.nearest(weapon, charge)
+
+
+## Steps to the next (+1) or previous (-1) increment.
+func step_charge(dir: int) -> void:
+	var inc := increments()
+	charge = inc[clampi(charge_increment() + dir, 0, inc.size() - 1)]
+
+
 func muzzle_velocity() -> float:
 	return weapon.velocity_for_charge(charge)
 

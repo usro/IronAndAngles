@@ -20,10 +20,18 @@ static func solve(sim: BattleSim, m: WeaponMount, target_m: Vector2) -> Dictiona
 	var distance := absf(target_m.x - m.position_m.x)
 	if m.is_orbital():
 		return {"ok": true, "designate_x_m": target_m.x, "distance_m": distance}
-	var aim := AimSolver.solve(m.weapon, ammo, m.muzzle_m(), target_m, sim.weather)
-	if aim.is_empty():
+	# Like a fire-direction centre: the lowest propellant increment that reaches, low angle.
+	var best := {}
+	for c in m.increments():
+		var aim := AimSolver.solve_at_charge(m.weapon, ammo, m.muzzle_m(), target_m, sim.weather, c)
+		if aim.ok:
+			best = aim
+			break
+		if best.is_empty() or absf(aim.miss_m) < absf(best.miss_m):
+			best = aim
+	if best.is_empty():
 		return {}
-	return {"ok": aim.ok, "elevation_deg": aim.elevation_deg, "charge": aim.charge, "distance_m": distance}
+	return {"ok": best.ok, "elevation_deg": best.elevation_deg, "charge": best.charge, "distance_m": distance}
 
 
 ## Dials the mount onto a solution from solve().

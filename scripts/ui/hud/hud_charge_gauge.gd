@@ -8,6 +8,8 @@ var charge := 0.5
 var last_charge := NAN
 var velocity := 0.0
 var alive := true
+## The weapon's propellant increments (0..1), drawn as ticks; the readout shows "CHG n".
+var increments := PackedFloat32Array()
 
 
 func _draw() -> void:
@@ -26,15 +28,24 @@ func _draw() -> void:
 	Blueprint.draw_hatch(self, fill, Color(Blueprint.LINE, 0.5), 5.0)
 	draw_line(Vector2(x - 3, bottom - fill_h), Vector2(x + col_w + 3, bottom - fill_h), ink, 2.0)
 	draw_rect(frame, Color(Blueprint.LINE, 0.7), false, 1.0)
-	for i in 11:
-		var y := bottom - h * i / 10.0
-		draw_line(Vector2(x + col_w, y), Vector2(x + col_w + (7.0 if i % 5 == 0 else 4.0), y),
-			Color(Blueprint.LINE, 0.6), 1.0)
+	# One tick per propellant increment.
+	for c in increments:
+		var y := bottom - h * c
+		draw_line(Vector2(x + col_w, y), Vector2(x + col_w + 7.0, y), Color(Blueprint.LINE, 0.6), 1.0)
 	if not is_nan(last_charge):
 		var ly := bottom - h * clampf(last_charge, 0.0, 1.0)
 		draw_colored_polygon(PackedVector2Array([Vector2(x - 2, ly), Vector2(x - 8, ly - 4), Vector2(x - 8, ly + 4)]),
 			Color(Blueprint.AMBER, 0.7))
 	var tx := x + col_w + 12.0
 	Blueprint.draw_text(self, Vector2(tx, bottom - fill_h * 0.5 + 6.0).clamp(Vector2(tx, top + 16), Vector2(tx, bottom)),
-		"%.1f%%" % (charge * 100.0), ink, 18, HORIZONTAL_ALIGNMENT_LEFT, Blueprint.FONT_MONO_BOLD)
+		"CHG %d" % (_nearest() + 1), ink, 18,
+		HORIZONTAL_ALIGNMENT_LEFT, Blueprint.FONT_MONO_BOLD)
 	Blueprint.draw_text(self, Vector2(0, size.y - 2), "%.1f m/s" % velocity, Blueprint.TEXT_DIM, 11)
+
+
+func _nearest() -> int:
+	var best := 0
+	for i in increments.size():
+		if absf(increments[i] - charge) < absf(increments[best] - charge):
+			best = i
+	return best

@@ -43,6 +43,66 @@ static func solve(weapon: WeaponData, ammo: AmmoData, origin_m: Vector2, target_
 
 
 const ELEVATION_ITERATIONS := 32
+## Elevation sampling step when solving at a fixed charge.
+const FIXED_CHARGE_SCAN_DEG := 1.0
+
+
+## Elevation that lands a nominal shot on target at a FIXED charge (propellant increments).
+## LOW picks the flatter of the two solutions, HIGH the steeper one. Direct-fire weapons use the
+## height-at-distance miss so uphill shots count while rising. Same result keys as solve().
+static func solve_at_charge(weapon: WeaponData, ammo: AmmoData, origin_m: Vector2, target_m: Vector2,
+		weather: WeatherState, charge: float, arc: Arc = Arc.LOW) -> Dictionary:
+	var facing := 1 if target_m.x >= origin_m.x else -1
+	var direct := weapon.is_direct_fire()
+	var step := FIXED_CHARGE_SCAN_DEG * (0.1 if direct else 1.0)
+	var samples: Array[Vector2] = []  # (elevation, miss)
+	var e := weapon.elevation_min_deg
+	while e <= weapon.elevation_max_deg + 1e-6:
+		var m := _height_miss(weapon, ammo, origin_m, target_m, weather, e, charge, facing) if direct \
+			else _miss(weapon, ammo, origin_m, target_m, weather, e, charge, facing)
+		if not is_nan(m) and m != NEVER_REACHES:
+			samples.append(Vector2(e, m))
+		e += step
+	var brackets: Array[Vector2] = []
+	for i in range(1, samples.size()):
+		if signf(samples[i].y) != signf(samples[i - 1].y):
+			brackets.append(Vector2(samples[i - 1].x, samples[i].x))
+	var result := {"ok": false, "elevation_deg": weapon.elevation_min_deg, "facing": facing, "charge": charge,
+		"miss_m": INF, "predicted_m": Vector2.INF}
+	if brackets.is_empty():
+		# Out of reach at this charge: report the closest sample.
+		for smp in samples:
+			if absf(smp.y) < absf(result.miss_m):
+				result.elevation_deg = smp.x
+				result.miss_m = smp.y
+		return result
+	var br: Vector2 = brackets[0] if arc == Arc.LOW else brackets[brackets.size() - 1]
+	var a := br.x
+	var b := br.y
+	var miss_a := _miss_any(direct, weapon, ammo, origin_m, target_m, weather, a, charge, facing)
+	for i in ELEVATION_ITERATIONS:
+		var mid := (a + b) * 0.5
+		var miss_mid := _miss_any(direct, weapon, ammo, origin_m, target_m, weather, mid, charge, facing)
+		if is_nan(miss_mid) or miss_mid == NEVER_REACHES:
+			break
+		if signf(miss_mid) == signf(miss_a):
+			a = mid
+			miss_a = miss_mid
+		else:
+			b = mid
+	var elev := (a + b) * 0.5
+	var miss := _miss_any(direct, weapon, ammo, origin_m, target_m, weather, elev, charge, facing)
+	result.elevation_deg = elev
+	result.miss_m = miss
+	result.ok = not is_nan(miss) and miss != NEVER_REACHES and absf(miss) <= ON_TARGET_M * (1.0 if direct else 4.0)
+	result.predicted_m = target_m + Vector2(miss * facing, 0.0) if not direct else target_m - Vector2(0.0, miss)
+	return result
+
+
+static func _miss_any(direct: bool, weapon: WeaponData, ammo: AmmoData, origin_m: Vector2, target_m: Vector2,
+		weather: WeatherState, elevation_deg: float, charge: float, facing: int) -> float:
+	return _height_miss(weapon, ammo, origin_m, target_m, weather, elevation_deg, charge, facing) if direct \
+		else _miss(weapon, ammo, origin_m, target_m, weather, elevation_deg, charge, facing)
 ## A bisected shot within this distance of the target counts as on target.
 const ON_TARGET_M := 0.5
 
