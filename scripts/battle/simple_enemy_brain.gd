@@ -28,7 +28,7 @@ func plan_shot(s: Situation, rng: RandomNumberGenerator) -> Dictionary:
 	var aim := target + Vector2(error, 0.0)
 	# High arc: the defender usually has to lob over whatever lies between.
 	var sol := AimSolver.solve(s.weapon, s.ammo, s.origin_m, aim, s.weather, AimSolver.Arc.HIGH,
-		SOLVER_STEP_DEG)
+		SOLVER_STEP_DEG, false)
 	if sol.is_empty():
 		return {}
 	return {"elevation_deg": sol.elevation_deg, "charge": sol.charge, "facing": sol.facing}

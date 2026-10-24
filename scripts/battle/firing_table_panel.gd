@@ -23,6 +23,17 @@ var _table_key := ""
 var _table: FiringTable
 var _solutions: Array[Dictionary] = []
 var _solutions_key := ""
+## Indices into _solutions still to compute: one per frame, so the computer never stalls a frame.
+var _pending: Array[int] = []
+## Background work (WorkerThreadPool): the table build and computer solutions run off the main
+## thread so the battle never stalls; results are picked up in refresh().
+var _table_task := -1
+var _table_result: FiringTable
+var _solution_task := -1
+var _solution_index := -1
+var _solution_result := {}
+## F was pressed before the nearest target's solution was ready: dial it in when it arrives.
+var _apply_when_ready := false
 var _render_key := ""
 
 
@@ -71,25 +82,95 @@ func set_measurement(range_m: float, height_m: float) -> void:
 
 
 func refresh() -> void:
-	if not visible or sim == null:
+	if sim == null or not (visible or _apply_when_ready):
 		return
 	var m := sim.selected_mount()
 	if m == null:
 		return
-	var key := "%s/%s/%d/%.0f" % [m.weapon.id, m.ammo_id, m.charge_increment(), input_height_m]
-	if key != _table_key:
+	# Direct-fire tables are centred on the entered range, so they rebuild when it moves.
+	var key := "%s/%s/%d/%.0f/%.0f" % [m.weapon.id, m.ammo_id, m.charge_increment(), input_height_m,
+		snappedf(input_range_m, 50.0) if m.weapon.is_direct_fire() else 0.0]
+	_collect_finished_tasks()
+	if key != _table_key and _table_task < 0:
 		_table_key = key
-		_table = _build_table(m)
-		_render_key = ""
+		_start_table_task(m)
 	var targets_key := "%s/%s/%s" % [m.weapon.id, m.ammo_id, _standing_key()]
 	if FireControl.is_unlocked(sim.player) and targets_key != _solutions_key:
 		_solutions_key = targets_key
-		_solutions = _compute_solutions(m)
+		_solutions = _queue_solutions()
 		_render_key = ""
-	var render_key := "%s/%.0f/%s" % [key, input_range_m, targets_key]
+	if not _pending.is_empty() and _solution_task < 0:
+		_start_solution_task(m, _pending.pop_front())
+	if _apply_when_ready and not _solutions.is_empty() and _solutions[0].done:
+		_apply_when_ready = false
+		if not _solutions[0].solution.is_empty():
+			FireControl.apply(m, _solutions[0].solution)
+		_render_key = ""
+	var render_key := "%s/%.0f/%s/%s/%s" % [key, input_range_m, targets_key, _table_task >= 0, _apply_when_ready]
 	if render_key != _render_key:
 		_render_key = render_key
 		_render(m)
+
+
+func _start_table_task(m: WeaponMount) -> void:
+	var ammo: AmmoData = sim.ammo_table.get(m.ammo_id)
+	if ammo == null or m.is_orbital():
+		_table = null
+		_render_key = ""
+		return
+	var weapon := m.weapon
+	var weather: WeatherState = sim.weather.duplicate()
+	var charge := m.charge
+	var height := input_height_m
+	var around := input_range_m
+	_table = null
+	_render_key = ""
+	_table_task = WorkerThreadPool.add_task(func() -> void:
+		_table_result = FiringTable.build(weapon, ammo, weather, charge, height, around), false, "firing table")
+
+
+func _start_solution_task(m: WeaponMount, index: int) -> void:
+	var ammo: AmmoData = sim.ammo_table.get(m.ammo_id)
+	if ammo == null:
+		_solutions[index].done = true
+		return
+	if m.is_orbital():
+		_solutions[index].solution = FireControl.solve(sim, m, _solutions[index].point)
+		_solutions[index].done = true
+		return
+	var weapon := m.weapon
+	var muzzle := m.muzzle_m()
+	var target: Vector2 = _solutions[index].point
+	var weather: WeatherState = sim.weather.duplicate()
+	var increments := m.increments()
+	_solution_index = index
+	var key := _solutions_key
+	_solution_task = WorkerThreadPool.add_task(func() -> void:
+		_solution_result = {"key": key, "solution": FireControl.solve_with(weapon, ammo, muzzle, target, weather,
+			increments)}, false, "fire control")
+
+
+## Picks up finished background work. A result for a weapon or target set that has since changed
+## is dropped (its key no longer matches).
+func _collect_finished_tasks() -> void:
+	if _table_task >= 0 and WorkerThreadPool.is_task_completed(_table_task):
+		WorkerThreadPool.wait_for_task_completion(_table_task)
+		_table_task = -1
+		_table = _table_result
+		_render_key = ""
+	if _solution_task >= 0 and WorkerThreadPool.is_task_completed(_solution_task):
+		WorkerThreadPool.wait_for_task_completion(_solution_task)
+		_solution_task = -1
+		if _solution_result.get("key", "") == _solutions_key and _solution_index < _solutions.size():
+			_solutions[_solution_index].solution = _solution_result.solution
+			_solutions[_solution_index].done = true
+			_render_key = ""
+
+
+func _exit_tree() -> void:
+	for t in [_table_task, _solution_task]:
+		if t >= 0:
+			WorkerThreadPool.wait_for_task_completion(t)
 
 
 func apply_nearest() -> bool:
@@ -101,15 +182,17 @@ func apply_nearest() -> bool:
 	var standing := _standing_points()
 	if standing.is_empty():
 		return false
-	FireControl.apply(m, FireControl.solve(sim, m, standing[0].point))
+	# Reuse the panel's solution for this target if it's already computed.
+	for s in _solutions:
+		if s.done and s.point == standing[0].point and not s.solution.is_empty() \
+				and _solutions_key.begins_with("%s/%s/" % [m.weapon.id, m.ammo_id]):
+			FireControl.apply(m, s.solution)
+			return true
+	# Not ready: show the panel calculating, and dial it in the moment it's done (no frame stall).
+	_apply_when_ready = true
+	if not visible:
+		toggle()
 	return true
-
-
-func _build_table(m: WeaponMount) -> FiringTable:
-	var ammo: AmmoData = sim.ammo_table.get(m.ammo_id)
-	if ammo == null or m.is_orbital():
-		return null
-	return FiringTable.build(m.weapon, ammo, sim.weather, m.charge, input_height_m)
 
 
 func _render(m: WeaponMount) -> void:
@@ -121,6 +204,8 @@ func _render(m: WeaponMount) -> void:
 		ammo.display_name if ammo else "—", m.charge_increment() + 1, m.increments().size()], &"ValueLabel")
 	if m.is_orbital():
 		_text(_content, "Orbital strikes don't need a table: designate the target's x.", &"BodyLabel")
+	elif _table_task >= 0:
+		_content.add_child(HudWorkingIndicator.new("CALCULATING FIRING TABLE"))
 	elif _table == null or _table.ranges.is_empty():
 		_text(_content, "No reach at this charge.", &"BodyLabel")
 	else:
@@ -187,10 +272,13 @@ func _angle_cells(grid: GridContainer, elev: float, tof: float, drift: float, fm
 	_cell(grid, "—" if is_nan(drift) else "%+.1f" % drift, col)
 
 
-func _compute_solutions(m: WeaponMount) -> Array[Dictionary]:
+## Rows for the computer, filled in one per frame by refresh().
+func _queue_solutions() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	_pending.clear()
 	for p in _standing_points().slice(0, FCC_ROWS):
-		out.append({"label": p.label, "point": p.point, "solution": FireControl.solve(sim, m, p.point)})
+		_pending.append(out.size())
+		out.append({"label": p.label, "point": p.point, "solution": {}, "done": false})
 	return out
 
 
@@ -224,7 +312,19 @@ func _fire_control(m: WeaponMount) -> void:
 		_content.add_child(row)
 		var sol: Dictionary = s.solution
 		var text: String
-		if sol.is_empty():
+		if not s.done:
+			var lab := Label.new()
+			lab.theme_type_variation = &"MonoLabel"
+			lab.add_theme_font_size_override("font_size", 12)
+			lab.text = s.label
+			lab.custom_minimum_size = Vector2(80, 0)
+			row.add_child(lab)
+			var ind := HudWorkingIndicator.new(
+				"CALCULATING FIRE SOLUTION" + (" · DIALS IN ON ARRIVAL" if _apply_when_ready and s == _solutions[0] else ""))
+			ind.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(ind)
+			continue
+		elif sol.is_empty():
 			text = "%s: can't fire" % s.label
 		elif sol.has("designate_x_m"):
 			text = "%s  %.0f m  →  strike x %.0f" % [s.label, sol.distance_m, sol.designate_x_m]

@@ -20,10 +20,16 @@ static func solve(sim: BattleSim, m: WeaponMount, target_m: Vector2) -> Dictiona
 	var distance := absf(target_m.x - m.position_m.x)
 	if m.is_orbital():
 		return {"ok": true, "designate_x_m": target_m.x, "distance_m": distance}
-	# Like a fire-direction centre: the lowest propellant increment that reaches, low angle.
+	return solve_with(m.weapon, ammo, m.muzzle_m(), target_m, sim.weather, m.increments())
+
+
+## The same computation from plain values: safe to run on a worker thread (pass copies).
+## Like a fire-direction centre: the lowest propellant increment that reaches, low angle.
+static func solve_with(weapon: WeaponData, ammo: AmmoData, muzzle_m: Vector2, target_m: Vector2,
+		weather: WeatherState, increments: PackedFloat32Array) -> Dictionary:
 	var best := {}
-	for c in m.increments():
-		var aim := AimSolver.solve_at_charge(m.weapon, ammo, m.muzzle_m(), target_m, sim.weather, c)
+	for c in increments:
+		var aim := AimSolver.solve_at_charge(weapon, ammo, muzzle_m, target_m, weather, c)
 		if aim.ok:
 			best = aim
 			break
@@ -31,7 +37,8 @@ static func solve(sim: BattleSim, m: WeaponMount, target_m: Vector2) -> Dictiona
 			best = aim
 	if best.is_empty():
 		return {}
-	return {"ok": best.ok, "elevation_deg": best.elevation_deg, "charge": best.charge, "distance_m": distance}
+	return {"ok": best.ok, "elevation_deg": best.elevation_deg, "charge": best.charge,
+		"distance_m": absf(target_m.x - muzzle_m.x)}
 
 
 ## Dials the mount onto a solution from solve().

@@ -10,7 +10,11 @@ extends RefCounted
 const ROWS := 12
 ## Elevation sweep step (deg) used to build the table; rows are interpolated from it.
 const SWEEP_DEG := 0.5
-const DIRECT_SWEEP_DEG := 0.02
+## Direct-fire rows: spacing, default centre, bisection steps, and fast-model step (meters).
+const DIRECT_ROW_M := 50.0
+const DIRECT_DEFAULT_CENTRE_M := 2000.0
+const DIRECT_ITERATIONS := 16
+const DIRECT_STEP_M := 10.0
 ## Integration step: coarse but fine for a card read to the nearest few meters.
 const DT := 1.0 / 60.0
 const MAX_FLIGHT_S := 90.0
@@ -40,8 +44,9 @@ var _sweep: Array[Vector4] = []
 var _peak := 0
 
 
+## `around_m`: direct-fire rows are centred on this range (0 = a default span).
 static func build(p_weapon: WeaponData, p_ammo: AmmoData, weather: WeatherState, p_charge: float,
-		p_height_m: float) -> FiringTable:
+		p_height_m: float, around_m := 0.0) -> FiringTable:
 	var t := FiringTable.new()
 	t.weapon = p_weapon
 	t.ammo = p_ammo
@@ -51,15 +56,17 @@ static func build(p_weapon: WeaponData, p_ammo: AmmoData, weather: WeatherState,
 	var k := 0.5 * weather.air_density * p_ammo.drag_coefficient * p_ammo.cross_section_m2 / p_ammo.mass_kg
 	var speed := p_weapon.velocity_for_charge(p_charge)
 	var drop := -p_height_m
-	var step := DIRECT_SWEEP_DEG if t.direct_fire else SWEEP_DEG
+	if t.direct_fire:
+		t._build_direct(speed, k, drop, weather.gravity, around_m)
+		return t
+	var step := SWEEP_DEG
 	var hi := minf(p_weapon.elevation_max_deg, 10.0) if t.direct_fire else p_weapon.elevation_max_deg
 	var e := p_weapon.elevation_min_deg
 	while e <= hi + 1e-6:
 		var calm := _fly(speed, e, k, p_ammo, drop, weather.gravity, 0.0, t.direct_fire)
 		if not is_nan(calm.x):
-			var windy := _fly(speed, e, k, p_ammo, drop, weather.gravity, PROBE_WIND, t.direct_fire)
-			var drift := (windy.x - calm.x) / PROBE_WIND if not is_nan(windy.x) else 0.0
-			t._sweep.append(Vector4(e, calm.x, calm.y, drift))
+			# Wind drift is filled in per displayed row below (one extra flight per row, not per sample).
+			t._sweep.append(Vector4(e, calm.x, calm.y, 0.0))
 		e += step
 	if t._sweep.is_empty():
 		return t
@@ -78,18 +85,68 @@ static func build(p_weapon: WeaponData, p_ammo: AmmoData, weather: WeatherState,
 		t.low_elevations.append(low.x)
 		t.high_elevations.append(high.x)
 		t.low_tof.append(low.y)
-		t.low_wind_drift.append(low.z)
+		t.low_wind_drift.append(t._drift(low.x, r, speed, k, drop, weather.gravity))
 		t.high_tof.append(high.y)
-		t.high_wind_drift.append(high.z)
+		t.high_wind_drift.append(t._drift(high.x, r, speed, k, drop, weather.gravity))
 		r += row_step
 	return t
+
+
+## Meters a 1 m/s tailwind moves a shot fired at `elev` that lands at `range_m` in still air.
+func _drift(elev: float, range_m: float, speed: float, k: float, drop: float, gravity: float) -> float:
+	if is_nan(elev):
+		return NAN
+	var windy := _fly(speed, elev, k, ammo, drop, gravity, PROBE_WIND, direct_fire)
+	return (windy.x - range_m) / PROBE_WIND if not is_nan(windy.x) else NAN
+
+
+## Direct fire: each row solved on its own (the path is nearly straight, so a sweep would need
+## hundredths of a degree). Fast model with a coarse step; rows every DIRECT_ROW_M around `around_m`.
+func _build_direct(speed: float, k: float, drop: float, gravity: float, around_m: float) -> void:
+	var centre := around_m if around_m > 0.0 else DIRECT_DEFAULT_CENTRE_M
+	var first := maxf(DIRECT_ROW_M, snappedf(centre, DIRECT_ROW_M) - DIRECT_ROW_M * (ROWS / 2))
+	for i in ROWS:
+		var r := first + i * DIRECT_ROW_M
+		var lo := weapon.elevation_min_deg
+		var hi := minf(weapon.elevation_max_deg, 15.0)
+		var ok := false
+		for it in DIRECT_ITERATIONS:
+			var mid := (lo + hi) * 0.5
+			var x := _fly(speed, mid, k, ammo, drop, gravity, 0.0, true, DIRECT_STEP_M).x
+			if is_nan(x) or x > r:
+				hi = mid
+			else:
+				lo = mid
+				ok = true
+		var e := (lo + hi) * 0.5
+		var calm := _fly(speed, e, k, ammo, drop, gravity, 0.0, true, DIRECT_STEP_M)
+		ranges.append(r)
+		low_elevations.append(e if ok and not is_nan(calm.x) else NAN)
+		low_tof.append(calm.y)
+		var windy := _fly(speed, e, k, ammo, drop, gravity, PROBE_WIND, true, DIRECT_STEP_M)
+		low_wind_drift.append((windy.x - calm.x) / PROBE_WIND if not is_nan(windy.x) else 0.0)
+		high_elevations.append(NAN)
+		high_tof.append(NAN)
+		high_wind_drift.append(NAN)
+	min_range = ranges[0]
+	max_range = ranges[ranges.size() - 1]
 
 
 ## (elevation, time of flight, wind drift per m/s) that lands at `range_m`, low or high angle.
 ## Components are NAN when that branch can't reach.
 func solve(range_m: float, high: bool) -> Vector3:
 	var nan3 := Vector3(NAN, NAN, NAN)
-	if _sweep.is_empty() or (high and direct_fire):
+	if direct_fire:
+		if high:
+			return nan3
+		for i in range(ranges.size() - 1):
+			if range_m >= ranges[i] and range_m <= ranges[i + 1] and not is_nan(low_elevations[i]) \
+					and not is_nan(low_elevations[i + 1]):
+				var f := (range_m - ranges[i]) / (ranges[i + 1] - ranges[i])
+				return Vector3(lerpf(low_elevations[i], low_elevations[i + 1], f), lerpf(low_tof[i], low_tof[i + 1], f),
+					lerpf(low_wind_drift[i], low_wind_drift[i + 1], f))
+		return nan3
+	if _sweep.is_empty():
 		return nan3
 	var from := _peak if high else 0
 	var to := _sweep.size() - 1 if high else _peak
@@ -103,12 +160,13 @@ func solve(range_m: float, high: bool) -> Vector3:
 
 
 ## First ground contact for one shot: (x, time of flight), NAN x if it never comes down.
+## `step_m`: for fast, near-straight shots, the distance flown per step (0 = the default DT).
 static func _fly(speed: float, elev_deg: float, k: float, a: AmmoData, drop_m: float, gravity: float,
-		wind: float, direct := false) -> Vector2:
+		wind: float, direct := false, step_m := 0.0) -> Vector2:
 	var pos := Vector2.ZERO
 	var vel := Vector2(cos(deg_to_rad(elev_deg)), -sin(deg_to_rad(elev_deg))) * speed
 	var t := 0.0
-	var dt := minf(DT, 2.0 / maxf(speed, 1.0)) if speed > 600.0 else DT
+	var dt := minf(DT, step_m / maxf(speed, 1.0)) if step_m > 0.0 else DT
 	var above := drop_m >= 0.0
 	var air := Vector2(wind * a.wind_sensitivity, 0.0)
 	while t < MAX_FLIGHT_S:
