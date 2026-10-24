@@ -37,6 +37,7 @@ var _auction_scroll: ScrollContainer
 var _shop_box: VBoxContainer
 var _repair_box: VBoxContainer
 var _saved_label: Label
+var _goal_label: Label
 
 
 func _ready() -> void:
@@ -153,6 +154,7 @@ func _on_money_changed(balance: int, _delta: int, _reason: String) -> void:
 	_funds_label.text = Blueprint.money(balance)
 	_funds_label.add_theme_color_override("font_color", Blueprint.AMBER if balance >= 0 else Blueprint.RED)
 	_era_label.text = GameConstants.era_name(GameState.player.current_era).to_upper()
+	_goal_label.text = "   " + CampaignGoal.describe(GameState.player)
 	if _controller.auction:
 		_refresh_auction()
 	_refresh_store()
@@ -479,11 +481,17 @@ func _build() -> void:
 	_label(top, "ERA", &"SectionLabel")
 	_era_label = _label(top, "", &"ValueLabel")
 	_era_label.add_theme_color_override("font_color", Blueprint.LINE)
+	_goal_label = _label(top, "", &"CaptionLabel")
+	_goal_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_goal_label.tooltip_text = "Win %d contracts in the %s era to complete the campaign." % [CampaignGoal.GOAL_WINS,
+		GameConstants.era_name(CampaignGoal.GOAL_ERA)]
+	_goal_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(spacer)
 	_row_button(top, "Research", _open_research).theme_type_variation = &"PrimaryButton"
 	_row_button(top, "How to Play", func() -> void: add_child(HowToPlayPanel.new()))
+	_row_button(top, "Settings", func() -> void: add_child(SettingsPanel.new()))
 	_saved_label = _label(top, "", &"CaptionLabel")
 	_saved_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	EventBus.game_saved.connect(_on_game_saved)

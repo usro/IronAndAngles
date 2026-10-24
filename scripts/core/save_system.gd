@@ -67,6 +67,7 @@ func save_game(slot: int = 0) -> Error:
 	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
 	var data := {
 		"version": SAVE_VERSION,
+		"game_version": ProjectSettings.get_setting("application/config/version", "dev"),
 		"saved_at": Time.get_datetime_string_from_system(),
 		"campaign_seed": GameState.campaign_seed,
 		"player": GameState.player.to_dict(),

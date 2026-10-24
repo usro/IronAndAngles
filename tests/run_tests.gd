@@ -9,6 +9,8 @@ const TEST_ROOT := "res://tests"
 func _initialize() -> void:
 	# Wait one frame so autoloads finish _ready().
 	await process_frame
+	# Tests must never write the player's settings (tips seen, key bindings, window size).
+	root.get_node("/root/Settings").persist = false
 	var filter := ""
 	var args := OS.get_cmdline_user_args()
 	if not args.is_empty():

@@ -39,6 +39,9 @@ func apply_battle_result(result: BattleResult) -> void:
 		# Generated contracts count as their client (template), so offers rotate between clients.
 		var contract := DataRegistry.get_contract(result.contract_id)
 		var done_id := contract.template_id if contract and contract.template_id != &"" else result.contract_id
+		if contract:
+			var era_key := str(contract.era_required)
+			player.era_victories[era_key] = int(player.era_victories.get(era_key, 0)) + 1
 		if not player.completed_contracts.has(done_id):
 			player.completed_contracts.append(done_id)
 	for weapon_id in result.damage_taken:

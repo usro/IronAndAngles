@@ -36,9 +36,17 @@ func _ready() -> void:
 	cont.text = "Continue"
 	cont.theme_type_variation = &"PrimaryButton"
 	cont.custom_minimum_size = Vector2(220, 44)
-	cont.pressed.connect(SceneRouter.goto.bind(SceneRouter.Screen.REGION_MAP))
+	cont.pressed.connect(_continue)
 	footer.add_child(cont)
 	cont.grab_focus.call_deferred()
+
+
+## Back to the map, or to the ending the first time the campaign goal is reached.
+func _continue() -> void:
+	if CampaignGoal.claim_ending(GameState.player):
+		SceneRouter.goto(SceneRouter.Screen.ENDING)
+	else:
+		SceneRouter.goto(SceneRouter.Screen.REGION_MAP)
 
 
 func _build_report(root: VBoxContainer, r: BattleResult) -> void:

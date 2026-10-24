@@ -15,6 +15,10 @@ var unlocked_tech: Array[StringName] = []
 var weapon_health: Dictionary = {}
 var current_era: GameConstants.Era = GameConstants.Era.MEDIEVAL
 var completed_contracts: Array[StringName] = []
+## Contracts won per era (era index as a string key -> count): the campaign goal counts these.
+var era_victories: Dictionary = {}
+## The campaign goal was reached and the ending shown (play may continue afterwards).
+var campaign_complete := false
 ## Weapons the player chose to deploy (see Loadout for the slot rules). Empty = automatic.
 var loadout: Array[StringName] = []
 var reputation: int = 0
@@ -88,6 +92,8 @@ func to_dict() -> Dictionary:
 		"current_era": current_era,
 		"completed_contracts": completed_contracts.map(func(s): return String(s)),
 		"loadout": loadout.map(func(s): return String(s)),
+		"era_victories": era_victories.duplicate(),
+		"campaign_complete": campaign_complete,
 		"reputation": reputation,
 	}
 
@@ -99,6 +105,9 @@ static func from_dict(d: Dictionary) -> PlayerState:
 	p.unlocked_tech = _to_names(d.get("unlocked_tech", []))
 	p.completed_contracts = _to_names(d.get("completed_contracts", []))
 	p.loadout = _to_names(d.get("loadout", []))
+	for k in d.get("era_victories", {}):
+		p.era_victories[String(k)] = int(d["era_victories"][k])
+	p.campaign_complete = bool(d.get("campaign_complete", false))
 	for k in d.get("ammo", {}):
 		p.ammo[StringName(k)] = int(d["ammo"][k])
 	for k in d.get("weapon_health", {}):

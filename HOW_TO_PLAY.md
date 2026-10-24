@@ -6,6 +6,8 @@ You run a mercenary artillery battery. You **bid for contracts**, then **shell t
 Region Map (bid, shop, research)  →  Battle (aim and fire)  →  Results (profit)  →  back to the map
 ```
 
+**Goal:** win **3 contracts in the Experimental era**, the last era of the tech tree. Your progress shows at the top of the region map. You can keep playing after the campaign ends.
+
 Start: **Main Menu → New Campaign**. You begin with **5,000 funds**, a **Trebuchet** and **20 Stone Balls**.
 
 ---

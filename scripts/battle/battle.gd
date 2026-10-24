@@ -140,6 +140,9 @@ func _ready() -> void:
 	minimap.offset_top = 14.0
 	minimap.offset_bottom = 14.0 + MINIMAP_SIZE.y
 	hud.add_child(minimap)
+	var tips := TutorialTips.new()
+	tips.battle = self
+	hud.add_child(tips)
 	sim.start()
 	# Split screen by default whenever the targets lie beyond the home view.
 	set_split(sim.target_zone_center_m().x - sim.battery_position_m().x > HOME_OFFSET_M.x + HOME_VIEW_M.x * 0.5)
@@ -195,7 +198,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_overview"):
 		_overview = not _overview
 	elif event.is_action_pressed("retreat"):
-		sim.retreat()
+		# Esc pauses; retreating is a confirmed choice in the pause menu.
+		get_viewport().set_input_as_handled()
+		hud.add_child(PauseMenu.new(sim.retreat))
 	elif event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
 		_ranging = event.pressed
 		if not _ranging and _range_point != Vector2.INF:

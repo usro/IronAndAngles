@@ -46,9 +46,16 @@ func _ready() -> void:
 	var cont := _button(col, "Continue", _on_continue)
 	cont.disabled = not SaveSystem.has_save()
 	_button(col, "How to Play", func() -> void: add_child(HowToPlayPanel.new()))
-	_button(col, "Audio Settings", func() -> void: add_child(AudioSettingsPanel.new()))
+	_button(col, "Settings", func() -> void: add_child(SettingsPanel.new()))
+	_button(col, "Credits", func() -> void: add_child(Credits.Sheet.new()))
 	_button(col, "Quit", get_tree().quit)
 	(col.get_child(4) as Button).grab_focus.call_deferred()
+	var version := Label.new()
+	version.theme_type_variation = &"CaptionLabel"
+	version.text = "v%s" % ProjectSettings.get_setting("application/config/version", "dev")
+	version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	version.position += Vector2(16, -30)
+	add_child(version)
 
 
 func _button(parent: Node, text: String, on_press: Callable, variation := &"MenuButtonLarge") -> Button:

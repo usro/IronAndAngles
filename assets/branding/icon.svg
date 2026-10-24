@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d2748"/>
+      <stop offset="1" stop-color="#081a33"/>
+    </linearGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#7fd3ff" stroke-opacity="0.12" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="180" fill="url(#paper)"/>
+  <rect x="32" y="32" width="960" height="960" rx="180" fill="url(#grid)"/>
+  <rect x="56" y="56" width="912" height="912" rx="158" fill="none" stroke="#7fd3ff" stroke-opacity="0.55" stroke-width="6"/>
+  <!-- ground -->
+  <path d="M120 790 Q300 770 430 790 T740 772 T904 786" fill="none" stroke="#eaf4ff" stroke-width="12" stroke-linecap="round"/>
+  <!-- trajectory arc -->
+  <path d="M262 712 Q520 140 820 742" fill="none" stroke="#7fd3ff" stroke-width="14" stroke-dasharray="40 26" stroke-linecap="round"/>
+  <!-- angle protractor -->
+  <path d="M262 712 m120 0 a120 120 0 0 0 -50 -97" fill="none" stroke="#ffc857" stroke-width="10" stroke-linecap="round"/>
+  <!-- gun: carriage, wheel, barrel -->
+  <line x1="262" y1="712" x2="372" y2="560" stroke="#eaf4ff" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="246" cy="742" r="46" fill="#081a33" stroke="#eaf4ff" stroke-width="12"/>
+  <circle cx="246" cy="742" r="8" fill="#eaf4ff"/>
+  <!-- shell at apex -->
+  <circle cx="530" cy="430" r="26" fill="#ffc857"/>
+  <!-- target crosshair -->
+  <circle cx="820" cy="742" r="58" fill="none" stroke="#ff6f5e" stroke-width="12"/>
+  <path d="M820 660V700M820 784V824M738 742H778M862 742H902" stroke="#ff6f5e" stroke-width="12" stroke-linecap="round"/>
+</svg>

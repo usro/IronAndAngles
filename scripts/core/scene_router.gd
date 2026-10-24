@@ -2,13 +2,14 @@ extends Node
 ## Autoload "SceneRouter": the only place that changes the top-level scene.
 ## Flow: MAIN_MENU -> REGION_MAP (auction, shop, tech) -> BATTLE -> RESULTS -> REGION_MAP
 
-enum Screen { MAIN_MENU, REGION_MAP, BATTLE, RESULTS }
+enum Screen { MAIN_MENU, REGION_MAP, BATTLE, RESULTS, ENDING }
 
 const SCENES := {
 	Screen.MAIN_MENU: "res://scenes/menu/main_menu.tscn",
 	Screen.REGION_MAP: "res://scenes/strategy/region_map.tscn",
 	Screen.BATTLE: "res://scenes/battle/battle.tscn",
 	Screen.RESULTS: "res://scenes/results/results.tscn",
+	Screen.ENDING: "res://scenes/ending/ending.tscn",
 }
 
 signal screen_changed(screen: Screen)
