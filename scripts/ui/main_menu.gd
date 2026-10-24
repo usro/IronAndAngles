@@ -46,6 +46,7 @@ func _ready() -> void:
 	var cont := _button(col, "Continue", _on_continue)
 	cont.disabled = not SaveSystem.has_save()
 	_button(col, "How to Play", func() -> void: add_child(HowToPlayPanel.new()))
+	_button(col, "Audio Settings", func() -> void: add_child(AudioSettingsPanel.new()))
 	_button(col, "Quit", get_tree().quit)
 	(col.get_child(4) as Button).grab_focus.call_deferred()
 
