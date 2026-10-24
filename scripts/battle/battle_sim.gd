@@ -247,11 +247,8 @@ func commit() -> BattleResult:
 # --- Setup ---
 
 func _place_mounts(weapon_table: Dictionary) -> void:
-	var owned: Array[WeaponData] = []
-	for id in player.owned_weapons:
-		var w: WeaponData = weapon_table.get(id)
-		if w != null:
-			owned.append(w)
+	# Only the guns the player deployed (Loadout), not everything they own.
+	var owned := Loadout.deployed(player, weapon_table)
 	var n := owned.size()
 	var spacing := MOUNT_SPACING_M if n <= 1 else minf(MOUNT_SPACING_M,
 		(TerrainGenerator.BATTERY_PAD_HALF_M * 2.0 - BattleRules.MOUNT_SIZE_M.x) / (n - 1))

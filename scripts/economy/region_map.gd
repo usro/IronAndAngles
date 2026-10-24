@@ -29,6 +29,7 @@ var _status_label: Label
 var _outcome_card: PanelContainer
 var _outcome_box: VBoxContainer
 var _deploy_button: Button
+var _deploy_hint: Label
 var _next_button: Button
 var _rivals_box: VBoxContainer
 var _auction_scroll: ScrollContainer
@@ -71,6 +72,8 @@ func _open_research() -> void:
 func _select(lot: Auction.Lot) -> void:
 	_selected = lot
 	_refresh_auction()
+	# The Battery tab shows each gun's reach against the selected plot.
+	_refresh_store()
 
 
 func _place_bid() -> void:
@@ -128,6 +131,14 @@ func _buy_ammo(id: StringName, count: int) -> void:
 
 func _repair(id: StringName, hp: float) -> void:
 	_status_label.text = Shop.status_text(_controller.shop.repair(GameState.player, id, hp))
+
+
+func _sell(id: StringName) -> void:
+	_status_label.text = Shop.status_text(_controller.shop.sell_weapon(GameState.player, id))
+
+
+func _toggle_deploy(id: StringName) -> void:
+	_status_label.text = Loadout.status_text(Loadout.toggle(GameState.player, DataRegistry.weapons, id))
 
 
 # --- Refresh ---
@@ -188,7 +199,8 @@ func _refresh_auction() -> void:
 	_bid_spin.editable = can_bid
 	_bid_button.disabled = not can_bid
 	_resolve_button.disabled = resolved or auction.lots.is_empty()
-	_deploy_button.disabled = _controller.player_outcome() == null
+	_deploy_button.disabled = _controller.player_outcome() == null \
+		or Loadout.deployed(GameState.player, DataRegistry.weapons).is_empty()
 	_next_button.disabled = not resolved
 
 	_clear(_rivals_box)
@@ -269,15 +281,21 @@ func _refresh_store() -> void:
 				shop.check_ammo(player, a.id, count) != Shop.Status.OK)
 
 	_clear(_repair_box)
-	_section(_repair_box, "BATTERY CONDITION")
+	var deployed := Loadout.deployed(player, DataRegistry.weapons)
+	_section(_repair_box, "BATTERY  ·  %d / %d SLOTS DEPLOYED  ·  more slots in later eras" % [deployed.size(),
+		Loadout.slots(player.current_era)])
 	if player.owned_weapons.is_empty():
 		_label(_repair_box, "You own no weapons.", &"BodyLabel")
+	var plot := _selected.plot if _selected else null
 	for id in player.owned_weapons:
 		var w := DataRegistry.get_weapon(id)
 		if w == null:
 			continue
+		var is_deployed := deployed.has(w)
 		var hp: float = player.weapon_health.get(id, 0.0)
 		var card := _card(_repair_box)
+		if not is_deployed:
+			card.modulate = Color(1, 1, 1, 0.75)
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 		card.add_child(row)
@@ -285,7 +303,9 @@ func _refresh_store() -> void:
 		var info := VBoxContainer.new()
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(info)
-		_label(info, w.display_name, &"ValueLabel")
+		var title := _label(info, "%s  ·  %s" % [w.display_name, "DEPLOYED" if is_deployed else "RESERVE"], &"ValueLabel")
+		if is_deployed:
+			title.add_theme_color_override("font_color", Blueprint.AMBER)
 		var bar := ProgressBar.new()
 		bar.max_value = w.max_health
 		bar.value = hp
@@ -298,13 +318,56 @@ func _refresh_store() -> void:
 		info.add_child(bar)
 		_label(info, "%.0f / %.0f hp · %s per hp" % [hp, w.max_health, Blueprint.money(w.repair_cost_per_hp)],
 			&"CaptionLabel")
+		var reach := _reach_text(w, plot)
+		if not reach.is_empty():
+			var reach_label := _label(info, reach, &"CaptionLabel")
+			reach_label.add_theme_color_override("font_color", Blueprint.RED if reach.begins_with("✗") else Blueprint.LINE)
 		var buttons := VBoxContainer.new()
 		row.add_child(buttons)
-		_chip(buttons, "Full  %s" % Blueprint.money(shop.repair_cost(player, id)), _repair.bind(id, INF),
+		var toggle_status := Loadout.check_toggle(player, DataRegistry.weapons, id)
+		var toggle := _chip(buttons, "Stand down" if is_deployed else "Deploy", _toggle_deploy.bind(id),
+			toggle_status != Loadout.Status.OK)
+		toggle.tooltip_text = Loadout.status_text(toggle_status) if toggle_status != Loadout.Status.OK else ""
+		_chip(buttons, "Repair  %s" % Blueprint.money(shop.repair_cost(player, id)), _repair.bind(id, INF),
 			shop.check_repair(player, id) != Shop.Status.OK)
 		var affordable := shop.affordable_repair_hp(player, id)
-		_chip(buttons, "What I can afford  %s" % Blueprint.money(shop.repair_cost(player, id, affordable)),
-			_repair.bind(id, affordable), affordable <= 0.0 or shop.check_repair(player, id, affordable) != Shop.Status.OK)
+		if affordable > 0.0 and affordable < shop.missing_health(player, id):
+			_chip(buttons, "Repair what I can  %s" % Blueprint.money(shop.repair_cost(player, id, affordable)),
+				_repair.bind(id, affordable), shop.check_repair(player, id, affordable) != Shop.Status.OK)
+		var sell_status := shop.check_sell(player, id)
+		var sell := _chip(buttons, "Sell  +%s" % Blueprint.money(shop.sell_value(player, id)), _sell.bind(id),
+			sell_status != Shop.Status.OK)
+		sell.tooltip_text = "50%% of the price (%s) minus repair cost" % Blueprint.money(w.purchase_cost) \
+			if sell_status == Shop.Status.OK else Shop.status_text(sell_status)
+	_refresh_deploy_hint()
+
+
+## One line above the Deploy button: which guns go, or why none can.
+func _refresh_deploy_hint() -> void:
+	if not is_instance_valid(_deploy_hint):
+		return
+	var deployed := Loadout.deployed(GameState.player, DataRegistry.weapons)
+	if is_instance_valid(_deploy_button) and _controller.auction:
+		_deploy_button.disabled = _controller.player_outcome() == null or deployed.is_empty()
+	if deployed.is_empty():
+		_deploy_hint.text = "NO SERVICEABLE GUN: repair one in the Battery tab"
+		_deploy_hint.add_theme_color_override("font_color", Blueprint.RED)
+		return
+	_deploy_hint.remove_theme_color_override("font_color")
+	_deploy_hint.text = "BATTERY (%d/%d): %s  ·  change in the Battery tab" % [deployed.size(),
+		Loadout.slots(GameState.player.current_era), ", ".join(deployed.map(func(w: WeaponData) -> String: return w.display_name))]
+
+
+## "Reaches ~310 m ✓" against the selected plot, using the weapon's cheapest owned-or-first ammo.
+func _reach_text(w: WeaponData, plot: PlotData) -> String:
+	if plot == null or w.launcher_type == GameConstants.LauncherType.ORBITAL or w.allowed_ammo.is_empty():
+		return ""
+	var ammo := DataRegistry.get_ammo(w.allowed_ammo[0])
+	if ammo == null:
+		return ""
+	var reach := PlotGenerator.max_range_m(w, ammo, plot)
+	var ok := plot.target_distance_m <= reach
+	return "%s reaches ~%.0f m  (%s: %.0f m)" % ["✓" if ok else "✗", reach, plot.display_name, plot.target_distance_m]
 
 
 func _show_last_report() -> void:
@@ -387,7 +450,7 @@ func _build() -> void:
 	body.add_child(tabs)
 	tabs.add_child(_build_auction_tab())
 	_shop_box = _scroll_tab(tabs, "Shop")
-	_repair_box = _scroll_tab(tabs, "Repair")
+	_repair_box = _scroll_tab(tabs, "Battery")
 
 	_status_label = _label(root, "", &"StatusLabel")
 
@@ -455,6 +518,9 @@ func _build_auction_tab() -> Control:
 	_outcome_card.add_child(_outcome_box)
 	var action_row := HBoxContainer.new()
 	box.add_child(action_row)
+	_deploy_hint = _label(box, "", &"CaptionLabel")
+	_deploy_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.move_child(_deploy_hint, action_row.get_index())
 	_deploy_button = _row_button(action_row, "Deploy to battle", _deploy)
 	_deploy_button.theme_type_variation = &"PrimaryButton"
 	_deploy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL

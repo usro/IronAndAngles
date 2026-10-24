@@ -11,9 +11,12 @@ extends RefCounted
 ## "every shell fired costs money"). Stocking shells here only costs a requisition fee of
 ## AMMO_STOCK_FEE_RATE x cost_per_shell, so the per-shot cost stays the main expense.
 
-enum Status { OK, UNKNOWN_ITEM, LOCKED, UNAFFORDABLE, ALREADY_OWNED, NOT_OWNED, NOTHING_TO_REPAIR, INVALID_AMOUNT }
+enum Status { OK, UNKNOWN_ITEM, LOCKED, UNAFFORDABLE, ALREADY_OWNED, NOT_OWNED, NOTHING_TO_REPAIR, INVALID_AMOUNT,
+	LAST_WEAPON }
 
 const AMMO_STOCK_FEE_RATE := 0.25
+## A weapon sells for this share of its purchase price, minus what its damage would cost to repair.
+const RESALE_RATE := 0.5
 
 var _weapons: Dictionary  # StringName -> WeaponData
 var _ammo: Dictionary     # StringName -> AmmoData
@@ -36,6 +39,7 @@ static func status_text(status: Status) -> String:
 		Status.NOT_OWNED: return "You don't own that weapon"
 		Status.NOTHING_TO_REPAIR: return "Already at full health"
 		Status.INVALID_AMOUNT: return "Invalid amount"
+		Status.LAST_WEAPON: return "Can't sell your only weapon"
 	return "Unknown status"
 
 
@@ -105,6 +109,38 @@ func buy_weapon(player: PlayerState, weapon_id: StringName) -> Status:
 	var weapon: WeaponData = _weapons[weapon_id]
 	player.spend(weapon.purchase_cost, "Bought %s" % weapon.display_name)
 	player.add_weapon(weapon)
+	Loadout.on_bought(player, _weapons, weapon_id)
+	return Status.OK
+
+
+# --- Selling ---
+
+## What the shop pays for an owned weapon: RESALE_RATE of its price minus its full repair cost.
+func sell_value(player: PlayerState, weapon_id: StringName) -> int:
+	var weapon: WeaponData = _weapons.get(weapon_id)
+	if weapon == null or not player.owned_weapons.has(weapon_id):
+		return 0
+	return maxi(0, floori(weapon.purchase_cost * RESALE_RATE) - repair_cost(player, weapon_id))
+
+
+func check_sell(player: PlayerState, weapon_id: StringName) -> Status:
+	if not _weapons.has(weapon_id):
+		return Status.UNKNOWN_ITEM
+	if not player.owned_weapons.has(weapon_id):
+		return Status.NOT_OWNED
+	if player.owned_weapons.size() <= 1:
+		return Status.LAST_WEAPON
+	return Status.OK
+
+
+## Sells the weapon (it leaves the battery too). Ammo stays in stock.
+func sell_weapon(player: PlayerState, weapon_id: StringName) -> Status:
+	var status := check_sell(player, weapon_id)
+	if status != Status.OK:
+		return status
+	var value := sell_value(player, weapon_id)
+	player.remove_weapon(weapon_id)
+	player.earn(value, "Sold %s" % (_weapons[weapon_id] as WeaponData).display_name)
 	return Status.OK
 
 

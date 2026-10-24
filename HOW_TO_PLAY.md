@@ -12,7 +12,7 @@ Start: **Main Menu → New Campaign**. You begin with **5,000 funds**, a **Trebu
 
 ## 1. Region Map: win a contract
 
-The map is on the left. The **Auction / Shop / Repair** tabs are on the right.
+The map is on the left. The **Auction / Shop / Battery** tabs are on the right.
 
 1. **Pick a plot.** The land is new every week: each contract comes with one or two freshly surveyed plots, each with its own terrain, distance, height and weather. Each contract this week is listed with its plots. Click a plot (its tag on the map, or its chip in the list). The **Selected lot** card shows:
    - **Payout:** what you're paid if you win the battle.
@@ -29,7 +29,10 @@ The map is on the left. The **Auction / Shop / Repair** tabs are on the right.
 
 Other buttons:
 - **Research** (top bar) opens the tech tree. Spend funds to unlock better weapons and ammo, which then appear in the Shop. An **era gate** node moves you into the next era (Industrial → Modern → Experimental).
-- **Repair tab:** fixes battery damage taken in battle.
+- **Battery tab:** your guns. Only **deployed** guns go to battle, and the battery has limited slots: **2** in the Medieval era, **3** in the Industrial and Modern eras, **4** in the Experimental era. Click **Deploy** or **Stand down** to choose. Each gun shows whether it **reaches the selected plot**. A destroyed gun (0 hp) can't deploy until it's repaired. A newly bought gun deploys automatically if a slot is free.
+  - **Repair** fixes battle damage.
+  - **Sell** returns **50% of the price, minus what the damage would cost to repair**. Ammo stays in stock. You can't sell your last gun. The free starting trebuchet sells for nothing.
+  - Old guns still have a use: a cheap gun on the pad draws some of the enemy's fire away from your expensive one.
 - **Autosave:** the campaign saves itself after every purchase, research, auction and battle. **Continue** on the main menu picks up where you left off. **New Campaign** asks before overwriting it.
 
 ---

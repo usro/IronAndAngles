@@ -15,6 +15,8 @@ var unlocked_tech: Array[StringName] = []
 var weapon_health: Dictionary = {}
 var current_era: GameConstants.Era = GameConstants.Era.MEDIEVAL
 var completed_contracts: Array[StringName] = []
+## Weapons the player chose to deploy (see Loadout for the slot rules). Empty = automatic.
+var loadout: Array[StringName] = []
 var reputation: int = 0
 
 
@@ -69,6 +71,13 @@ func add_weapon(weapon: WeaponData) -> void:
 		inventory_changed.emit()
 
 
+func remove_weapon(weapon_id: StringName) -> void:
+	owned_weapons.erase(weapon_id)
+	weapon_health.erase(weapon_id)
+	loadout.erase(weapon_id)
+	inventory_changed.emit()
+
+
 func to_dict() -> Dictionary:
 	return {
 		"money": money,
@@ -78,6 +87,7 @@ func to_dict() -> Dictionary:
 		"weapon_health": _keys_to_string(weapon_health),
 		"current_era": current_era,
 		"completed_contracts": completed_contracts.map(func(s): return String(s)),
+		"loadout": loadout.map(func(s): return String(s)),
 		"reputation": reputation,
 	}
 
@@ -88,6 +98,7 @@ static func from_dict(d: Dictionary) -> PlayerState:
 	p.owned_weapons = _to_names(d.get("owned_weapons", []))
 	p.unlocked_tech = _to_names(d.get("unlocked_tech", []))
 	p.completed_contracts = _to_names(d.get("completed_contracts", []))
+	p.loadout = _to_names(d.get("loadout", []))
 	for k in d.get("ammo", {}):
 		p.ammo[StringName(k)] = int(d["ammo"][k])
 	for k in d.get("weapon_health", {}):
