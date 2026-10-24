@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rifled_cannon"
+display_name = "Rifled Cannon"
+description = "Breech-loading field gun. Flat, fast and accurate."
+era = 1
+launcher_type = 1
+purchase_cost = 7000
+repair_cost_per_hp = 6
+energy_cost_per_shot = 0
+max_health = 220.0
+elevation_min_deg = -5.0
+elevation_max_deg = 35.0
+muzzle_velocity_min = 150.0
+muzzle_velocity_max = 320.0
+spread_deg = 0.4
+reload_time = 6.0
+salvo_size = 1
+salvo_interval = 0.0
+cooldown = 0.0
+allowed_ammo = Array[StringName]([&"common_shell", &"ap_shell", &"shrapnel_shell"])

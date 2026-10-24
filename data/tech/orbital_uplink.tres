@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TechNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tech_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"orbital_uplink"
+display_name = "Orbital Uplink"
+description = "Rent time on a kinetic bombardment satellite."
+era = 3
+research_cost = 150000
+era_gate = false
+prerequisites = Array[StringName]([&"superconducting_rails"])
+unlocks_weapons = Array[StringName]([&"orbital_platform"])
+unlocks_ammo = Array[StringName]([&"kinetic_rod"])
+tree_position = Vector2i(9, 2)

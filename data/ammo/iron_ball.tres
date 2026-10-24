@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"iron_ball"
+display_name = "Iron Ball"
+description = "Cast iron shot for the mortar. Skips off hard ground."
+era = 0
+damage_type = 0
+cost_per_shell = 30
+mass_kg = 18.0
+drag_coefficient = 0.47
+cross_section_m2 = 0.0216
+wind_sensitivity = 1.0
+damage = 70.0
+explosion_radius_m = 1.0
+crater_radius_m = 1.4
+bounce_restitution = 0.4
+bounce_randomness_deg = 15.0
+max_bounces = 2

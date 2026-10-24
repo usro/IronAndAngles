@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"heavy_railgun"
+display_name = "Superconducting Railgun"
+description = "Cryogenic rails push slugs past Mach 9. The capacitors need half a minute to recover."
+era = 3
+launcher_type = 3
+purchase_cost = 200000
+repair_cost_per_hp = 25
+energy_cost_per_shot = 2500
+max_health = 500.0
+elevation_min_deg = -5.0
+elevation_max_deg = 25.0
+muzzle_velocity_min = 2000.0
+muzzle_velocity_max = 3200.0
+spread_deg = 0.03
+reload_time = 5.0
+salvo_size = 1
+salvo_interval = 0.0
+cooldown = 30.0
+allowed_ammo = Array[StringName]([&"tungsten_slug", &"flechette_canister"])

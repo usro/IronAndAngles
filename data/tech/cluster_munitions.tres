@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TechNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tech_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"cluster_munitions"
+display_name = "Cluster Munitions"
+description = "Rockets that scatter submunitions over a wide area."
+era = 2
+research_cost = 12000
+era_gate = false
+prerequisites = Array[StringName]([&"mlrs"])
+unlocks_weapons = Array[StringName]([])
+unlocks_ammo = Array[StringName]([&"rocket_cluster"])
+tree_position = Vector2i(6, 0)

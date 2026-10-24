@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"powder_bomb"
+display_name = "Powder Bomb"
+description = "Hollow iron sphere packed with corned powder. The fuse burns through one bounce."
+era = 0
+damage_type = 1
+cost_per_shell = 60
+mass_kg = 20.0
+drag_coefficient = 0.47
+cross_section_m2 = 0.03
+wind_sensitivity = 1.0
+damage = 100.0
+explosion_radius_m = 3.5
+crater_radius_m = 2.5
+bounce_restitution = 0.2
+bounce_randomness_deg = 20.0
+max_bounces = 1

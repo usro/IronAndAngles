@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"autoloaded_howitzer"
+display_name = "Autoloaded Howitzer"
+description = "Fires a three-round burst, then needs a long magazine reload."
+era = 2
+launcher_type = 1
+purchase_cost = 60000
+repair_cost_per_hp = 15
+energy_cost_per_shot = 0
+max_health = 480.0
+elevation_min_deg = 0.0
+elevation_max_deg = 70.0
+muzzle_velocity_min = 150.0
+muzzle_velocity_max = 420.0
+spread_deg = 0.2
+reload_time = 14.0
+salvo_size = 3
+salvo_interval = 2.0
+cooldown = 0.0
+allowed_ammo = Array[StringName]([&"he_155", &"laser_guided_shell"])

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlotData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"greywater_marsh"
+display_name = "Greywater Marsh"
+description = "Soft, low ground. Shells sink instead of bouncing."
+terrain_profile = 3
+terrain_seed = 2102
+altitude_m = 5.0
+height_advantage_m = -8.0
+target_distance_m = 260.0
+map_position = Vector2(0.28, 0.7)

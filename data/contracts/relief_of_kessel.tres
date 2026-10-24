@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="3"]
+[ext_resource type="Resource" path="res://data/plots/kessel_heights.tres" id="10"]
+[ext_resource type="Resource" path="res://data/plots/river_ridge.tres" id="11"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("2")
+wind_speed = -6.0
+gust_strength = 4.0
+rain_intensity = 0.0
+
+[resource]
+script = ExtResource("1")
+id = &"relief_of_kessel"
+client_name = "Guild of Kessel"
+briefing = "Lift the siege of Kessel: five enemy siege towers on the slope."
+era_required = 0
+payout = 3200
+reserve_price = 500
+plots = Array[ExtResource("3")]([ExtResource("10"), ExtResource("11")])
+target_count = 5
+target_health = 150.0
+weather = SubResource("weather")
+difficulty = 3
+time_limit = 0.0

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"laser_guided_shell"
+display_name = "Laser-Guided Shell"
+description = "Steers onto a laser-designated point in the last seconds of flight. Pricey."
+era = 2
+damage_type = 1
+cost_per_shell = 2400
+mass_kg = 62.0
+drag_coefficient = 0.25
+cross_section_m2 = 0.0189
+wind_sensitivity = 0.3
+guided = true
+damage = 650.0
+explosion_radius_m = 6.0
+crater_radius_m = 3.5

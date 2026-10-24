@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rocket_he"
+display_name = "HE Rocket"
+description = "122 mm unguided rocket. Fins weathercock it into the wind."
+era = 2
+damage_type = 1
+cost_per_shell = 300
+mass_kg = 45.0
+drag_coefficient = 0.35
+cross_section_m2 = 0.0117
+wind_sensitivity = 0.8
+thrust_n = 3500.0
+burn_time = 0.8
+damage = 260.0
+explosion_radius_m = 8.0
+crater_radius_m = 3.0

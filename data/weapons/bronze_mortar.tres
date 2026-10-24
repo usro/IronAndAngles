@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"bronze_mortar"
+display_name = "Bronze Mortar"
+description = "Crude cast-bronze tube. Lobs shot almost straight up; never quite where you meant."
+era = 0
+launcher_type = 1
+purchase_cost = 1800
+repair_cost_per_hp = 3
+energy_cost_per_shot = 0
+max_health = 90.0
+elevation_min_deg = 45.0
+elevation_max_deg = 80.0
+muzzle_velocity_min = 40.0
+muzzle_velocity_max = 85.0
+spread_deg = 2.5
+reload_time = 9.0
+salvo_size = 1
+salvo_interval = 0.0
+cooldown = 0.0
+allowed_ammo = Array[StringName]([&"iron_ball", &"powder_bomb"])

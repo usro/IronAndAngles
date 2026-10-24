@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlotData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"pass_overlook"
+display_name = "Pass Overlook"
+description = "High above the pass. Thin air, long range."
+terrain_profile = 4
+terrain_seed = 4102
+altitude_m = 1800.0
+height_advantage_m = 80.0
+target_distance_m = 1400.0
+map_position = Vector2(0.8, 0.2)

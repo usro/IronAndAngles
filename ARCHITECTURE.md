@@ -73,7 +73,7 @@ These signatures are proposals. The owning session may refine them and documents
   - Not modelled yet: the `ORBITAL` launcher type (a strike from above is battle/AI logic, not a ballistic arc).
 - **Terrain** (final, see *Terrain* below): `Terrain` node with `build(plot)`, `carve(center_m, radius_m) -> int` (emits `EventBus.terrain_carved` when anything was removed), `is_solid(point_m) -> bool`, `raycast(from_m, to_m) -> {hit, position, normal}` and `surface_height_at(x_m) -> float`. Ballistics' `hit_test` is simply `terrain.raycast`.
 - **Economy:** auction logic as pure classes (`Auction`, bid resolution, rival bidding hook for AI), a shop that buys weapons, ammo and repairs through `PlayerState`, and settlement of the result.
-- **Progression:** a `TechTree` that answers `can_unlock(id)` and `unlock(id)` (spends money, emits `tech_unlocked`) and lists purchasable weapons and ammo.
+- **Progression** (final): `TechTree.for_game()` (or `TechTree.new(player, nodes)` in tests) gives `status(id) -> TechTree.Status`, `can_unlock(id)`, `unlock(id) -> bool` (spends via `PlayerState.spend`, appends to `unlocked_tech`, emits `tech_unlocked`; an `era_gate` node also advances `current_era` and emits `era_changed`), `unlockable_ids()`, `visible_ids()`, `purchasable_weapons(DataRegistry.weapons.keys())` / `purchasable_ammo(...)` (base kit, meaning items no node unlocks, plus unlocked items; owned weapons included), `is_weapon_unlocked` / `is_ammo_unlocked`, `unlocked_by(item_id)` and static `find_cycle(nodes)`. Non-gate nodes of a later era stay `ERA_LOCKED` until that era's gate is researched. `ContentValidator.validate(DataRegistry)` cross-checks all content. Balance rules are in `data/BALANCE.md`.
 
 ## Terrain
 

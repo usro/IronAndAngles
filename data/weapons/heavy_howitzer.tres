@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"heavy_howitzer"
+display_name = "Heavy Howitzer"
+description = "Drops 155 mm shells over hills onto things that thought they were safe."
+era = 1
+launcher_type = 1
+purchase_cost = 12000
+repair_cost_per_hp = 8
+energy_cost_per_shot = 0
+max_health = 300.0
+elevation_min_deg = 20.0
+elevation_max_deg = 70.0
+muzzle_velocity_min = 70.0
+muzzle_velocity_max = 300.0
+spread_deg = 0.6
+reload_time = 10.0
+salvo_size = 1
+salvo_interval = 0.0
+cooldown = 0.0
+allowed_ammo = Array[StringName]([&"howitzer_shell"])

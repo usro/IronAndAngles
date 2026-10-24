@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"he_155"
+display_name = "155 mm HE"
+description = "Modern boat-tailed high-explosive shell with a proximity fuze."
+era = 2
+damage_type = 1
+cost_per_shell = 450
+mass_kg = 43.5
+drag_coefficient = 0.25
+cross_section_m2 = 0.0189
+wind_sensitivity = 0.35
+damage = 400.0
+explosion_radius_m = 9.0
+crater_radius_m = 4.0

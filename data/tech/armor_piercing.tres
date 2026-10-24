@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TechNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tech_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"armor_piercing"
+display_name = "Armor-Piercing Shells"
+description = "Hardened shell noses for fortified targets."
+era = 1
+research_cost = 4000
+era_gate = false
+prerequisites = Array[StringName]([&"rifling"])
+unlocks_weapons = Array[StringName]([])
+unlocks_ammo = Array[StringName]([&"ap_shell"])
+tree_position = Vector2i(3, 0)

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="3"]
+[ext_resource type="Resource" path="res://data/plots/pass_overlook.tres" id="10"]
+[ext_resource type="Resource" path="res://data/plots/saddle_gap.tres" id="11"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("2")
+wind_speed = -7.0
+gust_strength = 5.0
+rain_intensity = 0.0
+
+[resource]
+script = ExtResource("1")
+id = &"mountain_pass_interdiction"
+client_name = "Coalition Command"
+briefing = "Ten vehicles are crossing the pass. You have four minutes."
+era_required = 2
+payout = 40000
+reserve_price = 6000
+plots = Array[ExtResource("3")]([ExtResource("10"), ExtResource("11")])
+target_count = 10
+target_health = 400.0
+weather = SubResource("weather")
+difficulty = 4
+time_limit = 240.0

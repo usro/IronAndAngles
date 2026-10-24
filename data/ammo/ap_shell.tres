@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"ap_shell"
+display_name = "Armor-Piercing Shell"
+description = "Hardened steel nose and a small bursting charge. Cracks fortifications."
+era = 1
+damage_type = 4
+cost_per_shell = 160
+mass_kg = 12.0
+drag_coefficient = 0.28
+cross_section_m2 = 0.0082
+wind_sensitivity = 0.5
+damage = 260.0
+explosion_radius_m = 1.2
+crater_radius_m = 1.5

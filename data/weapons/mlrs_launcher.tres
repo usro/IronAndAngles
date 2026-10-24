@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mlrs_launcher"
+display_name = "MLRS Launcher"
+description = "Six-tube rocket pod. One trigger pull empties it; reloading takes an age."
+era = 2
+launcher_type = 2
+purchase_cost = 45000
+repair_cost_per_hp = 15
+energy_cost_per_shot = 0
+max_health = 300.0
+elevation_min_deg = 10.0
+elevation_max_deg = 60.0
+muzzle_velocity_min = 30.0
+muzzle_velocity_max = 110.0
+spread_deg = 1.2
+reload_time = 40.0
+salvo_size = 6
+salvo_interval = 0.5
+cooldown = 0.0
+allowed_ammo = Array[StringName]([&"rocket_he", &"rocket_cluster"])

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlotData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"glass_valley_rim"
+display_name = "Glass Valley Rim"
+description = "A ridge above the industrial valley."
+terrain_profile = 2
+terrain_seed = 4101
+altitude_m = 400.0
+height_advantage_m = 60.0
+target_distance_m = 1100.0
+map_position = Vector2(0.72, 0.6)

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TechNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tech_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"great_trebuchet"
+display_name = "Great Trebuchet"
+description = "A bigger counterweight for longer throws."
+era = 0
+research_cost = 1200
+era_gate = false
+prerequisites = Array[StringName]([])
+unlocks_weapons = Array[StringName]([&"great_trebuchet"])
+unlocks_ammo = Array[StringName]([])
+tree_position = Vector2i(0, 2)

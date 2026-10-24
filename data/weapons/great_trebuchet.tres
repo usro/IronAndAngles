@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"great_trebuchet"
+display_name = "Great Trebuchet"
+description = "A ten-tonne counterweight. Longer reach, longer reload."
+era = 0
+launcher_type = 0
+purchase_cost = 2500
+repair_cost_per_hp = 3
+energy_cost_per_shot = 0
+max_health = 180.0
+elevation_min_deg = 30.0
+elevation_max_deg = 70.0
+muzzle_velocity_min = 30.0
+muzzle_velocity_max = 68.0
+spread_deg = 1.2
+reload_time = 18.0
+salvo_size = 1
+salvo_interval = 0.0
+cooldown = 0.0
+allowed_ammo = Array[StringName]([&"stone_ball", &"fire_pot"])
