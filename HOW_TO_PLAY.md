@@ -64,6 +64,7 @@ The screen has three plates:
 | **R** | Next ammo type |
 | **T** | **Firing table**: where your selected gun and ammo land at each angle and charge (still air) |
 | **F** | **Fire-control computer**: dials in the nearest standing target (needs the *Fire Control Computers* research) |
+| **X** | **Split screen** on/off: your battery on the left, the observer's view of the targets on the right (on by default when the targets are off-screen) |
 | **V** | Overview camera (battery, targets and enemy on one screen) |
 | **Esc** | Retreat. This is a defeat: no payout. |
 

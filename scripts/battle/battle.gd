@@ -14,6 +14,11 @@ const CAMERA_MARGIN_M := 25.0
 ## The home view: this much field (meters) around the battery, looking toward the targets.
 const HOME_VIEW_M := Vector2(170.0, 96.0)
 const HOME_OFFSET_M := Vector2(55.0, -20.0)
+## Split screen: each half shows this much field (meters) at the same zoom.
+const SPLIT_VIEW_M := Vector2(90.0, 100.0)
+const SPLIT_BATTERY_OFFSET_M := Vector2(20.0, -25.0)
+## The observer looks a little past the zone's centre so a spotted enemy gun is in frame.
+const SPLIT_OBSERVER_OFFSET_M := Vector2(8.0, -25.0)
 const TRAIL_MAX_POINTS := 600
 const BLAST_LIFETIME_S := 0.8
 const WHEEL_STEP_DEG := 0.5
@@ -34,6 +39,11 @@ var terrain: Terrain
 var camera: Camera2D
 var hud: BattleHud
 var firing_table: FiringTablePanel
+## Split screen: our battery on the left, the forward observer's view of the targets on the right.
+var split := false
+var _observer: ObserverPane
+var _split_layer: CanvasLayer
+var _observer_label: Label
 
 var _overlay: Node2D
 var _sky: ColorRect
@@ -89,6 +99,7 @@ func _ready() -> void:
 	add_child(camera)
 	camera.make_current()
 
+	_build_split_screen()
 	hud = BattleHud.new()
 	add_child(hud)
 
@@ -100,6 +111,8 @@ func _ready() -> void:
 	firing_table.sim = sim
 	hud.add_child(firing_table)
 	sim.start()
+	# Split screen by default whenever the targets lie beyond the home view.
+	set_split(sim.target_zone_center_m().x - sim.battery_position_m().x > HOME_OFFSET_M.x + HOME_VIEW_M.x * 0.5)
 	_snap_camera()
 
 
@@ -136,6 +149,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("apply_solution"):
 		if not firing_table.apply_nearest():
 			hud.flash_note("Fire-control computer: research Fire Control Computers first")
+	elif event.is_action_pressed("toggle_split"):
+		set_split(not split)
 	elif event.is_action_pressed("toggle_overview"):
 		_overview = not _overview
 	elif event.is_action_pressed("retreat"):
@@ -211,6 +226,11 @@ func _finish() -> void:
 # --- Camera ---
 
 func _update_camera(delta: float) -> void:
+	_observer.visible = _split_active()
+	_split_layer.visible = _split_active()
+	if _split_active():
+		_frame_split(1.0 - exp(-CAMERA_SMOOTHING * delta))
+		return
 	var rect := _camera_rect()
 	if not sim.flights.is_empty():
 		_hold_left = CAMERA_HOLD_S
@@ -231,6 +251,9 @@ func _update_sky() -> void:
 
 
 func _snap_camera() -> void:
+	if _split_active():
+		_frame_split(1.0)
+		return
 	var rect := _camera_rect()
 	camera.position = GameConstants.meters_to_pixels(rect.get_center())
 	camera.zoom = _zoom_for(rect)
@@ -261,6 +284,80 @@ func _camera_rect() -> Rect2:
 	# Keep the aspect of the screen and at least the home view's size.
 	var size := Vector2(maxf(rect.size.x, HOME_VIEW_M.x), maxf(rect.size.y, HOME_VIEW_M.y))
 	return Rect2(rect.get_center() - size * 0.5, size)
+
+
+# --- Split screen ---
+
+func set_split(on: bool) -> void:
+	split = on
+	_observer.visible = _split_active()
+	_split_layer.visible = _split_active()
+	_snap_camera()
+
+
+## The overview (V) always takes the whole screen.
+func _split_active() -> bool:
+	return split and not _overview
+
+
+func _build_split_screen() -> void:
+	_split_layer = CanvasLayer.new()
+	add_child(_split_layer)
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_split_layer.add_child(root)
+	_observer = ObserverPane.new(get_world_2d())
+	_observer.anchor_left = 0.5
+	_observer.anchor_right = 1.0
+	_observer.anchor_bottom = 1.0
+	root.add_child(_observer)
+	var divider := ColorRect.new()
+	divider.color = Blueprint.LINE
+	divider.anchor_left = 0.5
+	divider.anchor_right = 0.5
+	divider.anchor_bottom = 1.0
+	divider.offset_left = -1.0
+	divider.offset_right = 1.0
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(divider)
+	for spec in [[0.25, "BATTERY"], [0.75, ""]]:
+		var l := Label.new()
+		l.theme_type_variation = &"SectionLabel"
+		l.text = spec[1]
+		l.anchor_left = spec[0]
+		l.anchor_right = spec[0]
+		l.offset_top = 92.0
+		l.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(l)
+		if spec[1] == "":
+			# Right of the divider, clear of the conditions plate in the top-right corner.
+			_observer_label = l
+			l.anchor_left = 0.5
+			l.anchor_right = 0.5
+			l.offset_left = 16.0
+			l.grow_horizontal = Control.GROW_DIRECTION_END
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+
+## Left half: the battery's home view. Right half: the observer on the target zone. Same zoom,
+## so the overlay's line widths (sized for the main camera) are right in both.
+func _frame_split(k: float) -> void:
+	var vp := get_viewport_rect().size
+	var half := Vector2(vp.x * 0.5, vp.y)
+	var size_px := GameConstants.meters_to_pixels(SPLIT_VIEW_M)
+	var z := clampf(minf(half.x / size_px.x, half.y / size_px.y), 0.02, 2.0)
+	var battery := GameConstants.meters_to_pixels(sim.battery_position_m() + SPLIT_BATTERY_OFFSET_M)
+	# The main camera fills the screen; shift it so the battery sits in the left half's middle.
+	var main_pos := battery + Vector2(half.x * 0.5 / z, 0.0)
+	camera.position = camera.position.lerp(main_pos, k)
+	camera.zoom = camera.zoom.lerp(Vector2(z, z), k)
+	var zone := sim.target_zone_center_m()
+	_observer.frame(GameConstants.meters_to_pixels(zone + SPLIT_OBSERVER_OFFSET_M), camera.zoom.x,
+		sim.bounds_m().end.y * GameConstants.PIXELS_PER_METER)
+	_observer_label.text = "OBSERVER  ·  TARGET ZONE %.0f m" % (zone.x - sim.battery_position_m().x)
 
 
 func _zoom_for(rect_m: Rect2) -> Vector2:

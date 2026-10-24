@@ -5,7 +5,7 @@ extends CanvasLayer
 ## a key strip and the end-of-battle stamp. Only reads the sim; battle.gd forwards input.
 
 const KEY_HINTS := [["W/S", "elevation"], ["A/D", "charge"], ["Shift", "fine"], ["Wheel", "elev · +Shift charge"],
-	["Space", "fire"], ["Tab", "weapon"], ["R", "ammo"], ["T", "table"], ["F", "computer"], ["V", "overview"],
+	["Space", "fire"], ["Tab", "weapon"], ["R", "ammo"], ["T", "table"], ["F", "computer"], ["X", "split"], ["V", "overview"],
 	["Esc", "retreat"]]
 
 var _contract_label: Label
