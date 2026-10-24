@@ -14,7 +14,7 @@ Units: meters, m/s, kg, seconds. Money is an int. `data/**/*.tres` is the source
 ## Physics choices
 
 - **Drag:** `F = ½ ρ v² Cd A`. Masses and cross-sections match real objects of the class (a 40 kg granite ball ≈ 0.3 m across; a 155 mm shell is 43 kg and 0.0189 m²).
-- **Game-scale distances:** plots are 220–300 m (medieval), 520–780 m (industrial), 950–1,400 m (modern), 2,000–2,400 m (experimental). Real guns outrange these by a lot, so later-era muzzle velocities sit at the low, reduced-charge end of real values (rifled cannon 150–320 m/s, 155 mm 150–420 m/s), and the player fights at short charge or with flat fire.
+- **Game-scale distances:** plots are 220–300 m (medieval), 520–780 m (industrial), 950–1,400 m (modern), 2,000–2,400 m (experimental). Real guns outrange these by a lot, so later-era muzzle velocities sit at the low, reduced-charge end of real values (rifled cannon 150–320 m/s). The rifled cannon is a flat-fire gun: it's aimed by elevation, at low angles. The **howitzers lob**, so their charge dial is fitted to the era's distances instead: full charge reaches about 1.5–1.8× the farthest plot in the densest air, and minimum charge lands short of the nearest plot (modern 155 mm: 70–170 m/s; it used to be 150–420 m/s, which reached about 10 km and left 90% of the dial useless). `tests/progression/test_content.gd` enforces this for Modern-era tube artillery.
 - **Wind:** medieval shot is light for its size and gets `wind_sensitivity ≥ 1` (fire pots 1.4). Shells drop to 0.3–0.6, rockets weathercock (0.8), and railgun and orbital rounds are 0.
 - **Bounce:** only medieval round shot bounces, with seeded random deflection (`bounce_randomness_deg` 12–20°).
 - **Rockets:** 45 kg, 3.5 kN for 0.8 s (≈ +62 m/s on top of a 30–110 m/s rail exit).
@@ -38,9 +38,9 @@ Units: meters, m/s, kg, seconds. Money is an int. `data/**/*.tres` is the source
 | `bronze_mortar` | Med | 1800 | 40–85 | 45–80 | 2.5 | 9 | 0 | 90 |
 | `rifled_cannon` | Ind | 7000 | 150–320 | -5–35 | 0.4 | 6 | 0 | 220 |
 | `heavy_howitzer` | Ind | 12000 | 70–300 | 20–70 | 0.6 | 10 | 0 | 300 |
-| `sp_howitzer` | Mod | 30000 | 150–420 | 0–70 | 0.25 | 5 | 0 | 450 |
+| `sp_howitzer` | Mod | 30000 | 70–170 | 0–70 | 0.25 | 5 | 0 | 450 |
 | `mlrs_launcher` | Mod | 45000 | 30–110 | 10–60 | 1.2 | 40 / 6×0.5s | 0 | 300 |
-| `autoloaded_howitzer` | Mod | 60000 | 150–420 | 0–70 | 0.2 | 14 / 3×2s | 0 | 480 |
+| `autoloaded_howitzer` | Mod | 60000 | 70–170 | 0–70 | 0.2 | 14 / 3×2s | 0 | 480 |
 | `railgun` | Exp | 120000 | 1400–2400 | -5–25 | 0.05 | 4 / +20 | 1500 | 400 |
 | `heavy_railgun` | Exp | 200000 | 2000–3200 | -5–25 | 0.03 | 5 / +30 | 2500 | 500 |
 | `orbital_platform` | Exp | 300000 | 900–1300 | 85–90 | 0.1 | 10 / +90 | 12000 | 1000 |

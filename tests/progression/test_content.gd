@@ -195,3 +195,29 @@ static func _land_x(speed: float, elev_deg: float, k: float, a: AmmoData, drop_m
 		if above and vel.y > 0.0 and pos.y >= drop_m:
 			return pos.x
 	return NAN
+
+
+## Lobbing guns of the Modern era must use their whole charge dial on the era's plots: full charge
+## reaches the farthest plot with headroom, but not absurdly far, and minimum charge lands short of
+## the nearest one in thin air. (Was 150-420 m/s: 10 km at full charge, 90% of the dial useless.)
+func test_modern_howitzer_charge_dial_fits_the_era() -> void:
+	var r := PlotGenerator.EraRanges.for_era(GameConstants.Era.MODERN, DataRegistry.contracts.values())
+	for w: WeaponData in DataRegistry.weapons.values():
+		if w.era != GameConstants.Era.MODERN or w.launcher_type != GameConstants.LauncherType.GUNPOWDER:
+			continue
+		for ammo_id in w.allowed_ammo:
+			var a := DataRegistry.get_ammo(ammo_id)
+			var far := PlotData.new()
+			far.altitude_m = r.altitude_m.x
+			far.height_advantage_m = r.height_m.x
+			var reach := PlotGenerator.max_range_m(w, a, far)
+			assert_true(reach >= r.distance_m.y * 1.3 and reach <= r.distance_m.y * 3.0,
+				"%s/%s full charge reaches %.0f m vs farthest plot %.0f m" % [w.id, ammo_id, reach, r.distance_m.y])
+			var weak: WeaponData = w.duplicate()
+			weak.muzzle_velocity_max = w.muzzle_velocity_min
+			var near := PlotData.new()
+			near.altitude_m = r.altitude_m.y
+			near.height_advantage_m = r.height_m.y
+			var short := PlotGenerator.max_range_m(weak, a, near)
+			assert_true(short < r.distance_m.x,
+				"%s/%s minimum charge already reaches %.0f m (nearest plot %.0f m)" % [w.id, ammo_id, short, r.distance_m.x])
