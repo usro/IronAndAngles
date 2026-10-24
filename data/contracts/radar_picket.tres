@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Resource" path="res://data/plots/saddle_gap.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="4"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("3")
+wind_speed = 4.0
+gust_strength = 3.0
+rain_intensity = 0.0
+
+[resource]
+script = ExtResource("1")
+id = &"radar_picket"
+client_name = "Task Force Meridian"
+briefing = "Destroy four radar installations before the air strike goes in."
+era_required = 2
+payout = 20000
+reserve_price = 3000
+plots = Array[ExtResource("4")]([ExtResource("2")])
+target_count = 4
+target_health = 600.0
+weather = SubResource("weather")
+difficulty = 3
+time_limit = 0.0

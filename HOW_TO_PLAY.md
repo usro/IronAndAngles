@@ -14,7 +14,7 @@ Start: **Main Menu → New Campaign**. You begin with **5,000 funds**, a **Trebu
 
 The map is on the left. The **Auction / Shop / Repair** tabs are on the right.
 
-1. **Pick a plot.** Each contract this week is listed with its plots. Click a plot (its tag on the map, or its chip in the list). The **Selected lot** card shows:
+1. **Pick a plot.** The land is new every week: each contract comes with one or two freshly surveyed plots, each with its own terrain, distance, height and weather. Each contract this week is listed with its plots. Click a plot (its tag on the map, or its chip in the list). The **Selected lot** card shows:
    - **Payout:** what you're paid if you win the battle.
    - **Reserve:** the minimum bid.
    - **Plot:** the terrain type, your height advantage, and the **distance to the targets**. Closer and higher is easier.

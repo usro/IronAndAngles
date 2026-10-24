@@ -100,3 +100,16 @@ Units: meters, m/s, kg, seconds. Money is an int. `data/**/*.tres` is the source
 | `mountain_pass_interdiction` | Mod | 40000 | 6000 | 10 × 400 | pass_overlook (1400), saddle_gap (950) | -7 ± 5, 0, 240s limit | 20 / 4400 (`howitzer_shell`) | 11% / 33% |
 | `citadel_zero` | Exp | 160000 | 20000 | 5 × 1500 | citadel_approach (2000) | 6 ± 6, 0.4 | 10 / 19000 (`tungsten_slug`) | 12% / 36% |
 | `skyhook_defense` | Exp | 220000 | 30000 | 3 × 4000 | silo_plateau (2400), citadel_approach (2000) | -9 ± 8, 0, 360s limit | 15 / 28500 (`tungsten_slug`) | 13% / 39% |
+
+### Clients added for procedural offers
+
+`watchtowers_of_wyckham`, `saltmere_barges` (Medieval), `pithead_towers`, `coastal_batteries` (Industrial), `radar_picket`, `emplacement_sweep` (Modern), `fabricator_domes`, `mass_driver_capacitors` (Experimental). They follow the same par-cost band (test-enforced). Their listed plot only exists for validation, because every offer is put on generated land.
+
+## Procedural offers
+
+Each week, `ContractOffers` picks up to 3 clients (current era first, uncompleted first), and `ProceduralContracts` puts each one on 1–2 freshly generated plots (`PlotGenerator`):
+
+- **Bounds come from the content.** Distance, height advantage and altitude are drawn inside the min–max of that era's handcrafted plots. Wind, gusts and rain stay inside that era's handcrafted contracts. FLAT, HILLS and VALLEY are always allowed; RIDGE and MOUNTAIN only in eras that already have them. Editing a handcrafted plot or contract therefore retunes generation too.
+- **Reach guard.** A plot is accepted only if its distance is at most 92% of the max range (full charge, point mass with drag) of the era's reference weapon: the cheapest non-orbital weapon of the era (trebuchet, rifled cannon, SP howitzer, railgun). Otherwise the far bound shrinks and the draw is retried.
+- **Money.** Payout and reserve are the client's × 0.9–1.15, rounded (50 below 10k, 500 below 100k, then 5k).
+- Ids are `<client>_w<week>` and `gen_plot_<n>`. Winning one marks the **client** completed, so offers rotate between clients.

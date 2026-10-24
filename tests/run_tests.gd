@@ -20,6 +20,11 @@ func _initialize() -> void:
 		if filter != "" and not path.contains(filter):
 			continue
 		var script: GDScript = load(path)
+		# A file that fails to compile has no methods; count it instead of silently skipping it.
+		if script == null or not script.can_instantiate():
+			failed += 1
+			print("FAIL %s: does not compile" % path.get_file())
+			continue
 		for method in script.get_script_method_list():
 			var name: String = method.name
 			if not name.begins_with("test_"):

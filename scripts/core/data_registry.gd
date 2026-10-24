@@ -15,6 +15,10 @@ var tech: Dictionary = {}       # StringName -> TechNodeData
 var contracts: Dictionary = {}  # StringName -> ContractData
 var plots: Dictionary = {}      # StringName -> PlotData
 var rivals: Dictionary = {}     # StringName -> RivalData
+## Contracts and plots generated at runtime for the weekly auction. Kept apart from the content
+## tables (which stay exactly what is on disk) but found by get_contract / get_plot.
+var generated_contracts: Dictionary = {}
+var generated_plots: Dictionary = {}
 
 
 func _ready() -> void:
@@ -43,11 +47,18 @@ func get_tech(id: StringName) -> TechNodeData:
 
 
 func get_contract(id: StringName) -> ContractData:
-	return contracts.get(id)
+	return contracts.get(id, generated_contracts.get(id))
 
 
 func get_plot(id: StringName) -> PlotData:
-	return plots.get(id)
+	return plots.get(id, generated_plots.get(id))
+
+
+## Makes a generated contract (and its plots) findable by id.
+func register_generated(contract: ContractData) -> void:
+	generated_contracts[contract.id] = contract
+	for p in contract.plots:
+		generated_plots[p.id] = p
 
 
 func get_rival(id: StringName) -> RivalData:

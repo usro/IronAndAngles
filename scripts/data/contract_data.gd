@@ -3,6 +3,9 @@ extends Resource
 ## A siege/defense job offered at auction. Payout is fixed; shells fired come out of it.
 
 @export var id: StringName
+## For a contract generated for one week's auction: the handcrafted contract it was made from.
+## Empty for handcrafted contracts.
+@export var template_id: StringName
 @export var client_name: String
 @export_multiline var briefing: String
 @export var era_required: GameConstants.Era = GameConstants.Era.MEDIEVAL

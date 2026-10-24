@@ -7,6 +7,7 @@ const OFFER_COUNT := 3
 ## Keys in GameState.economy_state.
 const KEY_RIVAL_MONEY := "rival_money"
 const KEY_LAST_CONTRACT := "last_contract"
+const KEY_WEEK := "week"
 
 var offers: Array[ContractData] = []
 var auction: Auction
@@ -31,10 +32,17 @@ var player: PlayerState:
 	get: return GameState.player
 
 
-## Generates this round's offers and opens a new auction.
+## Picks this week's clients, puts each on freshly generated plots and opens a new auction.
 func start_round() -> void:
-	offers = ContractOffers.generate(DataRegistry.contracts.values(), player.current_era,
-		player.completed_contracts, _derive_rng(), OFFER_COUNT)
+	var week := int(GameState.economy_state.get(KEY_WEEK, 0)) + 1
+	GameState.economy_state[KEY_WEEK] = week
+	var rng := _derive_rng()
+	var templates := ContractOffers.generate(DataRegistry.contracts.values(), player.current_era,
+		player.completed_contracts, rng, OFFER_COUNT)
+	offers = ProceduralContracts.for_week(templates, week, rng, DataRegistry.contracts.values(),
+		DataRegistry.weapons, DataRegistry.ammo)
+	for c in offers:
+		DataRegistry.register_generated(c)
 	outcomes = []
 	auction = Auction.new(offers)
 	auction.started.connect(EventBus.auction_started.emit)

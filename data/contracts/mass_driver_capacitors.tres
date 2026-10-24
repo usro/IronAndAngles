@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Resource" path="res://data/plots/silo_plateau.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="4"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("3")
+wind_speed = -7.0
+gust_strength = 6.0
+rain_intensity = 0.3
+
+[resource]
+script = ExtResource("1")
+id = &"mass_driver_capacitors"
+client_name = "Lunar Transit Authority"
+briefing = "Disable six mass-driver capacitor banks before the launch window."
+era_required = 3
+payout = 150000
+reserve_price = 20000
+plots = Array[ExtResource("4")]([ExtResource("2")])
+target_count = 6
+target_health = 1200.0
+weather = SubResource("weather")
+difficulty = 4
+time_limit = 420.0

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Resource" path="res://data/plots/millers_hill.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="4"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("3")
+wind_speed = 2.0
+gust_strength = 1.5
+rain_intensity = 0.0
+
+[resource]
+script = ExtResource("1")
+id = &"watchtowers_of_wyckham"
+client_name = "Count Aldric"
+briefing = "Topple the three watchtowers of Wyckham before the levy marches."
+era_required = 0
+payout = 1800
+reserve_price = 250
+plots = Array[ExtResource("4")]([ExtResource("2")])
+target_count = 3
+target_health = 150.0
+weather = SubResource("weather")
+difficulty = 1
+time_limit = 0.0

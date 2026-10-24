@@ -36,7 +36,11 @@ func apply_battle_result(result: BattleResult) -> void:
 	last_battle_result = result
 	if result.victory:
 		player.earn(result.payout_earned, "Contract payout")
-		player.completed_contracts.append(result.contract_id)
+		# Generated contracts count as their client (template), so offers rotate between clients.
+		var contract := DataRegistry.get_contract(result.contract_id)
+		var done_id := contract.template_id if contract and contract.template_id != &"" else result.contract_id
+		if not player.completed_contracts.has(done_id):
+			player.completed_contracts.append(done_id)
 	for weapon_id in result.damage_taken:
 		var hp: float = player.weapon_health.get(weapon_id, 0.0)
 		player.weapon_health[weapon_id] = maxf(0.0, hp - result.damage_taken[weapon_id])

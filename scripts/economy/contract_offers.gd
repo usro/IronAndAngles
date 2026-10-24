@@ -4,8 +4,9 @@ extends RefCounted
 
 
 ## Returns up to `count` contracts the player's era allows, shuffled by `rng`.
-## Contracts without plots can't be fought and are skipped. Contracts not yet completed come
-## first; completed ones only fill the remaining slots, so a small content set never runs dry.
+## Contracts without plots can't be fought and are skipped. Uncompleted current-era contracts come
+## first, then uncompleted older ones; completed ones only fill the remaining slots, so a small
+## content set never runs dry. StrategyController uses these as templates for the week's offers.
 static func generate(contracts: Array, era: GameConstants.Era, completed: Array[StringName],
 		rng: RandomNumberGenerator, count: int = 3) -> Array[ContractData]:
 	var eligible: Array[ContractData] = []
@@ -16,12 +17,14 @@ static func generate(contracts: Array, era: GameConstants.Era, completed: Array[
 	eligible.sort_custom(func(a: ContractData, b: ContractData) -> bool: return a.id < b.id)
 	_shuffle(eligible, rng)
 
-	var fresh: Array[ContractData] = []
-	var repeats: Array[ContractData] = []
+	# Current-era contracts first, then older ones; within each, not-yet-completed first.
+	var groups: Array[Array] = [[], [], [], []]
 	for c in eligible:
-		(repeats if completed.has(c.id) else fresh).append(c)
-	fresh.append_array(repeats)
-	return fresh.slice(0, count)
+		groups[(2 if completed.has(c.id) else 0) + (0 if c.era_required == era else 1)].append(c)
+	var ordered: Array[ContractData] = []
+	for g in groups:
+		ordered.append_array(g)
+	return ordered.slice(0, count)
 
 
 ## Fisher-Yates with the given RNG (Array.shuffle() uses the global RNG, which breaks determinism).

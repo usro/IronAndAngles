@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/contract_data.gd" id="1"]
+[ext_resource type="Resource" path="res://data/plots/citadel_approach.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/data/weather_state.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/data/plot_data.gd" id="4"]
+
+[sub_resource type="Resource" id="weather"]
+script = ExtResource("3")
+wind_speed = 5.0
+gust_strength = 5.0
+rain_intensity = 0.0
+
+[resource]
+script = ExtResource("1")
+id = &"fabricator_domes"
+client_name = "Vanta Dynamics"
+briefing = "Erase four autonomous fabricator domes."
+era_required = 3
+payout = 170000
+reserve_price = 22000
+plots = Array[ExtResource("4")]([ExtResource("2")])
+target_count = 4
+target_health = 2000.0
+weather = SubResource("weather")
+difficulty = 4
+time_limit = 0.0
