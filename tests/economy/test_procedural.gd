@@ -36,7 +36,10 @@ func test_generated_plots_stay_in_bounds_and_in_reach() -> void:
 			var p := PlotGenerator.generate(r, loadout, rng, i)
 			assert_true(p.target_distance_m >= r.distance_m.x - 0.01 and p.target_distance_m <= r.distance_m.y + 2.5,
 				"era %d distance %.0f outside %s" % [era, p.target_distance_m, r.distance_m])
-			assert_true(p.height_advantage_m >= r.height_m.x - 0.5 and p.height_advantage_m <= r.height_m.y + 0.5,
+			# Direct-fire (railgun) eras fight from level or lower ground so the line of sight is clear.
+			var heights := Vector2(-PlotGenerator.DIRECT_FIRE_MAX_DEPTH_M, 0.0) \
+				if PlotGenerator.is_direct_fire(loadout[0]) else r.height_m
+			assert_true(p.height_advantage_m >= heights.x - 0.5 and p.height_advantage_m <= heights.y + 0.5,
 				"era %d height %.0f" % [era, p.height_advantage_m])
 			assert_true(r.profiles.has(p.terrain_profile), "era %d profile allowed" % era)
 			var reach := PlotGenerator.max_range_m(loadout[0], loadout[1], p)

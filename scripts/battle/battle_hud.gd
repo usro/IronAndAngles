@@ -186,6 +186,7 @@ func refresh(sim: BattleSim) -> void:
 	_dial.alive = m.is_alive()
 	_dial.orbital = m.is_orbital()
 	_dial.elevation_deg = m.elevation_deg
+	_dial.decimals = 2 if m.weapon.is_direct_fire() else 1
 	_dial.min_deg = m.weapon.elevation_min_deg
 	_dial.max_deg = m.weapon.elevation_max_deg
 	_dial.last_deg = last.get("elevation", NAN)

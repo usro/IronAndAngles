@@ -57,6 +57,26 @@ static func generate(plot: PlotData, cell_size_m: float = DEFAULT_CELL_SIZE_M) -
 	return map
 
 
+## True when a straight line from a muzzle `muzzle_height_m` above the battery pad to the middle
+## of the target zone (`target_height_m` above its ground) clears the generated ground by
+## `clearance_m` everywhere in between. Direct-fire weapons (railguns) need this; arcing ones don't.
+## Cheap: samples the 1-D surface function, no TerrainMap is built.
+static func has_line_of_sight(plot: PlotData, muzzle_height_m := 2.0, target_height_m := 1.5,
+		clearance_m := 0.5, step_m := 2.0) -> bool:
+	var battery_x := SIDE_MARGIN_M
+	var target_x := battery_x + maxf(plot.target_distance_m, BATTERY_PAD_HALF_M + TARGET_ZONE_HALF_M)
+	var shape := _ProfileShape.new(plot, battery_x, target_x)
+	var from := Vector2(battery_x, plot.height_advantage_m + muzzle_height_m)
+	var to := Vector2(target_x, target_height_m)
+	var x := battery_x + step_m
+	while x < target_x - TARGET_ZONE_HALF_M:
+		var line_h := lerpf(from.y, to.y, (x - from.x) / (to.x - from.x))
+		if shape.elevation(x) + clearance_m > line_h:
+			return false
+		x += step_m
+	return true
+
+
 ## Elevation function for one plot. Pads are exactly flat; everything else is base slope
 ## + profile feature + noise, faded in near the pads.
 class _ProfileShape:

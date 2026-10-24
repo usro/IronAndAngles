@@ -24,4 +24,4 @@ target_count = 6
 target_health = 1200.0
 weather = SubResource("weather")
 difficulty = 4
-time_limit = 420.0
+time_limit = 480.0

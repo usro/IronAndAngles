@@ -34,7 +34,77 @@ static func solve(weapon: WeaponData, ammo: AmmoData, origin_m: Vector2, target_
 			return r
 		if best.is_empty() or absf(r.miss_m) < absf(best.miss_m):
 			best = r
+	# Hypervelocity weapons (railguns) span hundreds of meters per degree: no grid elevation lands,
+	# but the miss changes sign between two of them. Bisect the elevation at a fixed charge.
+	var refined := _bisect_elevation(weapon, ammo, origin_m, target_m, weather, elevations)
+	if not refined.is_empty() and (refined.ok or absf(refined.miss_m) < absf(best.miss_m)):
+		return refined
 	return best
+
+
+const ELEVATION_ITERATIONS := 32
+## A bisected shot within this distance of the target counts as on target.
+const ON_TARGET_M := 0.5
+
+
+static func _bisect_elevation(weapon: WeaponData, ammo: AmmoData, origin_m: Vector2, target_m: Vector2,
+		weather: WeatherState, elevations: Array[float]) -> Dictionary:
+	const CHARGE := 0.5
+	var facing := 1 if target_m.x >= origin_m.x else -1
+	var sorted := elevations.duplicate()
+	sorted.sort()
+	var prev_e := NAN
+	var prev_m := 0.0
+	for e in sorted:
+		var m := _height_miss(weapon, ammo, origin_m, target_m, weather, e, CHARGE, facing)
+		if is_nan(m):
+			prev_e = NAN
+			continue
+		if not is_nan(prev_e) and signf(m) != signf(prev_m):
+			var a: float = prev_e
+			var b: float = e
+			var miss_a := prev_m
+			for i in ELEVATION_ITERATIONS:
+				var mid := (a + b) * 0.5
+				var miss_mid := _height_miss(weapon, ammo, origin_m, target_m, weather, mid, CHARGE, facing)
+				if is_nan(miss_mid):
+					break
+				if signf(miss_mid) == signf(miss_a):
+					a = mid
+					miss_a = miss_mid
+				else:
+					b = mid
+			var elev := (a + b) * 0.5
+			var vertical := _height_miss(weapon, ammo, origin_m, target_m, weather, elev, CHARGE, facing)
+			var result := {"ok": false, "elevation_deg": elev, "facing": facing, "charge": CHARGE,
+				"miss_m": vertical, "predicted_m": target_m - Vector2(0.0, vertical)}
+			result.ok = not is_nan(vertical) and absf(vertical) <= ON_TARGET_M
+			return result
+		prev_e = e
+		prev_m = m
+	return {}
+
+
+## Direct-fire miss: how far above (+) or below (-) the target point the shell passes at the
+## target's distance, whether rising or falling. NaN if it never gets that far.
+static func _height_miss(weapon: WeaponData, ammo: AmmoData, origin_m: Vector2, target_m: Vector2,
+		weather: WeatherState, elevation_deg: float, charge: float, facing: int) -> float:
+	var p := ShotParams.create(weapon, ammo, elevation_deg, charge, origin_m, facing, weather, null)
+	p.nominal = true
+	p.record_points = false
+	p.stop_at_first_contact = true
+	var t := Ballistics.simulate_shot(p, _vertical_plane(target_m.x, facing))
+	if not t.has_impact():
+		return NAN
+	return target_m.y - t.end_point_m.y
+
+
+static func _vertical_plane(x_m: float, facing: int) -> Callable:
+	return func(from_m: Vector2, to_m: Vector2) -> Dictionary:
+		if (from_m.x - x_m) * facing > 0.0 or (to_m.x - x_m) * facing < 0.0:
+			return {}
+		var f := (x_m - from_m.x) / (to_m.x - from_m.x) if to_m.x != from_m.x else 0.0
+		return {"position": Vector2(x_m, lerpf(from_m.y, to_m.y, f)), "normal": Vector2.LEFT * facing}
 
 
 ## Best charge for a fixed elevation (bisection; range grows with charge).

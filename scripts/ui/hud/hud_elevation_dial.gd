@@ -4,6 +4,8 @@ extends Control
 ## elevation and a ghost tick at the last shot's. Orbital weapons show a strike offset instead.
 
 var elevation_deg := 45.0
+## Decimal places on the readout (2 for railguns).
+var decimals := 1
 var min_deg := 0.0
 var max_deg := 90.0
 ## NAN when there is no previous shot.
@@ -44,5 +46,5 @@ func _draw() -> void:
 	var dir := Vector2(cos(a), sin(a))
 	draw_line(c, c + dir * (r + 2.0), ink, 2.0)
 	draw_circle(c, 3.0, ink)
-	Blueprint.draw_text(self, Vector2(size.x, size.y - 2), "%.1f°" % elevation_deg, ink, 18,
+	Blueprint.draw_text(self, Vector2(size.x, size.y - 2), ("%." + str(decimals) + "f°") % elevation_deg, ink, 18,
 		HORIZONTAL_ALIGNMENT_RIGHT, Blueprint.FONT_MONO_BOLD)

@@ -333,3 +333,14 @@ func test_aim_solver_reports_out_of_range() -> void:
 	var s := AimSolver.solve(_weapon(10.0, 20.0), _ammo(), Vector2.ZERO, Vector2(5000.0, 0.0), _weather())
 	assert_false(s.ok, "too far")
 	assert_true(s.miss_m < 0.0, "short")
+
+
+## Railguns cover hundreds of meters per degree; the solver must bisect elevation to land them.
+func test_solver_lands_a_railgun_slug() -> void:
+	var w := DataRegistry.get_weapon(&"railgun")
+	var a := DataRegistry.get_ammo(&"tungsten_slug")
+	for case in [[2200.0, -50.0], [2400.0, -100.0], [2000.0, 0.0], [2100.0, 20.0]]:
+		var origin := Vector2(0.0, case[1])
+		var target := Vector2(case[0], 0.0)
+		var r := AimSolver.solve(w, a, origin, target, WeatherState.new())
+		assert_true(r.ok, "railgun at %.0f m, height %+.0f m: miss %.1f m" % [case[0], -case[1], r.miss_m])

@@ -9,6 +9,8 @@ extends RefCounted
 ## A generated plot must lie within this share of the reference weapon's maximum range.
 const REACH_MARGIN := 0.92
 const MAX_ATTEMPTS := 12
+## Direct-fire plots put the battery level with or up to this far below the targets.
+const DIRECT_FIRE_MAX_DEPTH_M := 30.0
 ## Coarse integration step for range checks; accurate to a few meters, fast enough for every offer.
 const RANGE_DT := 1.0 / 30.0
 
@@ -105,16 +107,33 @@ static func generate(ranges: EraRanges, loadout: Array, rng: RandomNumberGenerat
 	plot.altitude_m = snappedf(rng.randf_range(ranges.altitude_m.x, ranges.altitude_m.y), 5.0)
 	plot.map_position = Vector2(rng.randf_range(0.08, 0.7), rng.randf_range(0.14, 0.86))
 	var distance_hi := ranges.distance_m.y
+	var direct_fire := not loadout.is_empty() and is_direct_fire(loadout[0])
 	for attempt in MAX_ATTEMPTS:
 		plot.target_distance_m = snappedf(rng.randf_range(ranges.distance_m.x, distance_hi), 5.0)
 		plot.height_advantage_m = snappedf(rng.randf_range(ranges.height_m.x, ranges.height_m.y), 1.0)
-		if loadout.is_empty() or plot.target_distance_m <= max_range_m(loadout[0], loadout[1], plot) * REACH_MARGIN:
+		if direct_fire:
+			# Downhill ground rounds off below the battery and blocks a flat shot; railguns
+			# fight from level or lower ground instead.
+			plot.height_advantage_m = snappedf(rng.randf_range(-DIRECT_FIRE_MAX_DEPTH_M, 0.0), 1.0)
+		var in_reach := loadout.is_empty() or plot.target_distance_m <= max_range_m(loadout[0], loadout[1], plot) * REACH_MARGIN
+		# A flat-firing reference weapon also needs a clear line to the target zone.
+		if in_reach and (not direct_fire or TerrainGenerator.has_line_of_sight(plot)):
 			break
+		if in_reach:
+			# Blocked: new ground, and gentler ground after a few tries.
+			plot.terrain_seed = rng.randi()
+			if attempt >= MAX_ATTEMPTS / 2:
+				plot.terrain_profile = GameConstants.TerrainProfile.FLAT
+			continue
 		# Out of reach: pull the far bound in toward the near one and try again.
 		distance_hi = lerpf(ranges.distance_m.x, distance_hi, 0.8)
 		if attempt == MAX_ATTEMPTS - 1:
 			plot.target_distance_m = ranges.distance_m.x
 			plot.height_advantage_m = maxf(plot.height_advantage_m, 0.0)
+	if direct_fire and not TerrainGenerator.has_line_of_sight(plot):
+		# Last resort: level, gentle ground always gives a clear line.
+		plot.terrain_profile = GameConstants.TerrainProfile.FLAT
+		plot.height_advantage_m = 0.0
 	plot.display_name = place_name(ranges.era, plot.terrain_profile, rng)
 	plot.description = "%s, %.0f m to the target zone, %+.0f m above it." % [
 		GameConstants.TerrainProfile.keys()[plot.terrain_profile].capitalize(), plot.target_distance_m,
@@ -141,6 +160,11 @@ static func place_name(era: GameConstants.Era, profile: GameConstants.TerrainPro
 	# Modern and experimental theatres are map grid references.
 	return "Grid %s-%02d %s" % [GRID_WORDS[rng.randi_range(0, GRID_WORDS.size() - 1)], rng.randi_range(1, 99),
 		PROFILE_WORDS[profile]]
+
+
+## Weapons too fast to arc meaningfully over terrain: they need line of sight to the targets.
+static func is_direct_fire(w: WeaponData) -> bool:
+	return w.is_direct_fire()
 
 
 ## Farthest landing distance (meters) at full charge over the weapon's elevation range, landing

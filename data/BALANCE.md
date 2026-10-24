@@ -27,7 +27,7 @@ Units: meters, m/s, kg, seconds. Money is an int. `data/**/*.tres` is the source
 - **Medieval:** cheap shells and unreliable flight. Fire pots do area damage but lose 80 % in rain (Greywater has rain 0.3).
 - **Industrial:** choose the round. AP (260 dmg, 160) cracks Fort Marrow's 350 HP casemates in 2 hits; common shell (150 dmg, 90) needs 3 but is cheaper per target.
 - **Modern:** reload management. The MLRS dumps 6 rockets (1,800) per pull, then reloads for 40 s. That's ideal for Mountain Pass (10 soft targets, 240 s limit), wasteful against hard bunkers. The autoloader fires 3-round bursts. A laser-guided shell (2,400) costs 5× an HE round but rarely misses.
-- **Experimental:** time vs money. On Skyhook, railguns are cheapest (15 hits ≈ 28.5k), but with 24 s cycles and a 360 s limit there is no room for misses. Orbital rods one-shot each silo for 18k apiece (54k total).
+- **Experimental:** time vs money. On Skyhook, railguns are cheapest (15 hits ≈ 28.5k), and with 19 s cycles (4 s reload + 15 s cooldown) the 480 s limit leaves room for only a few misses. Orbital rods one-shot each silo for 18k apiece (54k total).
 
 ### Weapons
 
@@ -41,8 +41,8 @@ Units: meters, m/s, kg, seconds. Money is an int. `data/**/*.tres` is the source
 | `sp_howitzer` | Mod | 30000 | 70–170 | 0–70 | 0.25 | 5 | 0 | 450 |
 | `mlrs_launcher` | Mod | 45000 | 30–110 | 10–60 | 1.2 | 40 / 6×0.5s | 0 | 300 |
 | `autoloaded_howitzer` | Mod | 60000 | 70–170 | 0–70 | 0.2 | 14 / 3×2s | 0 | 480 |
-| `railgun` | Exp | 120000 | 1400–2400 | -5–25 | 0.05 | 4 / +20 | 1500 | 400 |
-| `heavy_railgun` | Exp | 200000 | 2000–3200 | -5–25 | 0.03 | 5 / +30 | 2500 | 500 |
+| `railgun` | Exp | 120000 | 1400–2400 | -5–25 | 0.05 | 4 / +15 | 1500 | 400 |
+| `heavy_railgun` | Exp | 200000 | 2000–3200 | -5–25 | 0.03 | 5 / +18 | 2500 | 500 |
 | `orbital_platform` | Exp | 300000 | 900–1300 | 85–90 | 0.1 | 10 / +90 | 12000 | 1000 |
 
 ### Ammo
@@ -99,7 +99,7 @@ Units: meters, m/s, kg, seconds. Money is an int. `data/**/*.tres` is the source
 | `operation_glass_valley` | Mod | 36000 | 5000 | 6 × 700 | glass_valley_rim (1100), saddle_gap (950) | 3 ± 2, 0 | 18 / 3960 (`howitzer_shell`) | 11% / 33% |
 | `mountain_pass_interdiction` | Mod | 40000 | 6000 | 10 × 400 | pass_overlook (1400), saddle_gap (950) | -7 ± 5, 0, 240s limit | 20 / 4400 (`howitzer_shell`) | 11% / 33% |
 | `citadel_zero` | Exp | 160000 | 20000 | 5 × 1500 | citadel_approach (2000) | 6 ± 6, 0.4 | 10 / 19000 (`tungsten_slug`) | 12% / 36% |
-| `skyhook_defense` | Exp | 220000 | 30000 | 3 × 4000 | silo_plateau (2400), citadel_approach (2000) | -9 ± 8, 0, 360s limit | 15 / 28500 (`tungsten_slug`) | 13% / 39% |
+| `skyhook_defense` | Exp | 220000 | 30000 | 3 × 4000 | silo_plateau (2400), citadel_approach (2000) | -9 ± 8, 0, 480s limit | 15 / 28500 (`tungsten_slug`) | 13% / 39% |
 
 ### Clients added for procedural offers
 
@@ -111,5 +111,18 @@ Each week, `ContractOffers` picks up to 3 clients (current era first, uncomplete
 
 - **Bounds come from the content.** Distance, height advantage and altitude are drawn inside the min–max of that era's handcrafted plots. Wind, gusts and rain stay inside that era's handcrafted contracts. FLAT, HILLS and VALLEY are always allowed; RIDGE and MOUNTAIN only in eras that already have them. Editing a handcrafted plot or contract therefore retunes generation too.
 - **Reach guard.** A plot is accepted only if its distance is at most 92% of the max range (full charge, point mass with drag) of the era's reference weapon: the cheapest non-orbital weapon of the era (trebuchet, rifled cannon, SP howitzer, railgun). Otherwise the far bound shrinks and the draw is retried.
+- **Line of sight for direct fire.** When the reference weapon is a railgun (`WeaponData.is_direct_fire()`), the plot must also pass `TerrainGenerator.has_line_of_sight()`. The generator's smooth slope always rounds off just below a higher battery pad, so a flat shot downhill hits the hillside about 100 m out. Railgun plots therefore put the battery **level with or up to 30 m below** the targets; ridges and mountains are retried, and the last resort is flat, level ground.
 - **Money.** Payout and reserve are the client's × 0.9–1.15, rounded (50 below 10k, 500 below 100k, then 5k).
 - Ids are `<client>_w<week>` and `gen_plot_<n>`. Winning one marks the **client** completed, so offers rotate between clients.
+
+## Experimental era (railgun) fixes
+
+The probe found every Experimental battle lost with a railgun, for three reasons, all fixed:
+
+1. **AimSolver couldn't aim a railgun.** It scanned elevation in 2° steps, which is hundreds of meters at 2,000+ m/s. It now bisects elevation on the direct-fire "height at the target's distance" miss when no grid angle lands.
+2. **No line of sight downhill** (see *Line of sight for direct fire* above).
+3. **Cycle time vs time limits.** Railgun cooldown 20 → 15 s, heavy railgun 30 → 18 s. Skyhook limit 360 → 480 s, Mass Driver 420 → 480 s.
+
+**Defenders lob.** The enemy gun is the cheapest non-orbital, non-railgun weapon of the contract's era (or the latest earlier era with one) that reaches the battery. In the Experimental era that's the Modern SP howitzer. A defender railgun would face the same blocked line of sight the other way, which would make the duel a stalemate. Your railgun can't see the defender behind the targets either, so in the Experimental era the duel is fought by the howitzers in your battery.
+
+**Aiming:** railgun elevation dials move 10× finer (`WeaponMount.elevation_scale()`), and the dial and last-shot label show hundredths of a degree. At 2 km, 0.05° is about 2 m.

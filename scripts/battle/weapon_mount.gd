@@ -102,6 +102,11 @@ func abort_salvo() -> void:
 		_start_lockout()
 
 
+## Dial speed multiplier: direct-fire weapons need hundredths of a degree at 2 km.
+func elevation_scale() -> float:
+	return 0.1 if weapon.is_direct_fire() else 1.0
+
+
 func adjust_elevation(delta_deg: float) -> void:
 	elevation_deg = weapon.clamp_elevation(elevation_deg + delta_deg)
 

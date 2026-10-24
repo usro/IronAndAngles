@@ -80,6 +80,8 @@ There's no crosshair. You **dial in angle and charge**, fire, and **correct from
 
 **Trebuchet tip:** it starts at 50° and 50% charge, which is far too weak. The medieval plots (220–300 m away) are hit at about **30–35° and 75–100% charge**. Start at around **30°, 85%** and adjust from there.
 
+**Railguns** (Experimental era) fire almost dead straight, so you aim them like a rifle. A railgun needs a **clear line to the targets**: its plots are level ground or slightly uphill. The angle dial moves **10× finer** for them and shows hundredths of a degree, because at 2 km, 0.05° is about 2 m. Railguns can't see the enemy gun behind the targets, so keep a howitzer in your battery to fight the duel.
+
 ### Reload and reveal
 
 - After each shot the weapon **reloads** (the trebuchet takes 12 s). The reload bar fills up and then shows `READY [Space]`.

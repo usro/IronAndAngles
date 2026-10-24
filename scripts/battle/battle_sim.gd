@@ -319,23 +319,36 @@ func _place_targets() -> void:
 		targets.append(BattleTarget.new(StringName("target_%d" % (i + 1)), spots[i], contract.target_health))
 
 
-## The defender fields the cheapest non-orbital gun of the contract's era (deterministic, from
-## content), firing its first allowed ammo.
+## The defender fields a lobbing gun (railguns can't see over the ground between the lines):
+## the cheapest one of the contract's era that reaches the battery, else of the latest earlier era
+## that has one, firing its first allowed ammo. Deterministic, from content.
 func _setup_enemy(weapon_table: Dictionary) -> void:
-	var candidates: Array[WeaponData] = []
-	for w: WeaponData in weapon_table.values():
-		if w.era == contract.era_required and w.launcher_type != GameConstants.LauncherType.ORBITAL:
-			candidates.append(w)
-	candidates.sort_custom(func(a: WeaponData, b: WeaponData) -> bool:
-		return a.purchase_cost < b.purchase_cost or (a.purchase_cost == b.purchase_cost and a.id < b.id))
-	for w in candidates:
-		for id in w.allowed_ammo:
-			if ammo_table.has(id):
+	var reverse := PlotData.new()
+	if plot:
+		reverse.target_distance_m = plot.target_distance_m
+		reverse.altitude_m = plot.altitude_m
+		reverse.height_advantage_m = -plot.height_advantage_m
+	var era := contract.era_required
+	while enemy_weapon == null and era >= 0:
+		var candidates: Array[WeaponData] = []
+		for w: WeaponData in weapon_table.values():
+			if w.era == era and w.launcher_type != GameConstants.LauncherType.ORBITAL and not w.is_direct_fire():
+				candidates.append(w)
+		candidates.sort_custom(func(a: WeaponData, b: WeaponData) -> bool:
+			return a.purchase_cost < b.purchase_cost or (a.purchase_cost == b.purchase_cost and a.id < b.id))
+		for w in candidates:
+			for id in w.allowed_ammo:
+				var a: AmmoData = ammo_table.get(id)
+				if a == null:
+					continue
+				if plot and PlotGenerator.max_range_m(w, a, reverse) < plot.target_distance_m:
+					continue
 				enemy_weapon = w
-				enemy_ammo = ammo_table[id]
+				enemy_ammo = a
 				break
-		if enemy_weapon:
-			break
+			if enemy_weapon:
+				break
+		era -= 1
 	if enemy_weapon == null:
 		return
 	var x := minf(map.target_zone_max_x_m + ENEMY_STANDOFF_M, bounds_m().end.x - 1.0)

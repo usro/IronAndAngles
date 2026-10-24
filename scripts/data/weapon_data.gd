@@ -44,5 +44,10 @@ func velocity_for_charge(charge: float) -> float:
 	return lerpf(muzzle_velocity_min, muzzle_velocity_max, clampf(charge, 0.0, 1.0))
 
 
+## Too fast to arc over terrain: needs line of sight, and finer elevation control.
+func is_direct_fire() -> bool:
+	return launcher_type == GameConstants.LauncherType.RAILGUN
+
+
 func clamp_elevation(deg: float) -> float:
 	return clampf(deg, elevation_min_deg, elevation_max_deg)

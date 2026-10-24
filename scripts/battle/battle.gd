@@ -152,7 +152,7 @@ func _read_held_input(delta: float) -> void:
 		sim.adjust_designator(m, (chg + elev) * WeaponMount.DESIGNATOR_RATE_M * delta / fine)
 		return
 	if elev != 0.0:
-		m.adjust_elevation(elev * WeaponMount.ELEVATION_RATE_DEG * delta / fine)
+		m.adjust_elevation(elev * WeaponMount.ELEVATION_RATE_DEG * m.elevation_scale() * delta / fine)
 	if chg != 0.0:
 		m.adjust_charge(chg * WeaponMount.CHARGE_RATE * delta / fine)
 
@@ -166,7 +166,7 @@ func _wheel(dir: int, shift: bool) -> void:
 	elif shift:
 		m.adjust_charge(dir * WHEEL_STEP_CHARGE)
 	else:
-		m.adjust_elevation(dir * WHEEL_STEP_DEG)
+		m.adjust_elevation(dir * WHEEL_STEP_DEG * m.elevation_scale())
 
 
 # --- Events ---
@@ -178,7 +178,8 @@ func _on_shell_launched(flight: ShellFlight, enemy: bool) -> void:
 	_hold_left = CAMERA_HOLD_S
 	var m := sim.selected_mount()
 	if not enemy and m and not m.is_orbital():
-		_launch_labels[flight] = "last: %.1f° / %.1f%%" % [m.elevation_deg, m.charge * 100.0]
+		_launch_labels[flight] = ("last: %.2f° / %.1f%%" if m.weapon.is_direct_fire() else "last: %.1f° / %.1f%%") \
+			% [m.elevation_deg, m.charge * 100.0]
 		hud.note_shot(sim.selected, m.elevation_deg, m.charge)
 
 
