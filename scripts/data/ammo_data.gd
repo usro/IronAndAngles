@@ -23,6 +23,10 @@ extends Resource
 ## Rockets: thrust (N) applied for burn_time seconds after launch.
 @export var thrust_n: float = 0.0
 @export var burn_time: float = 0.0
+## Guided: maximum turn rate of the velocity vector toward the designated point, degrees per second.
+@export var guidance_turn_rate_deg: float = 30.0
+## Guided: seconds after launch before steering starts (the shell flies ballistic until then).
+@export var guidance_arm_time: float = 0.0
 
 @export_group("Impact")
 @export var damage: float = 50.0
@@ -36,5 +40,13 @@ extends Resource
 @export var max_bounces: int = 0
 ## Shrapnel: fragments spawned when the shell bursts.
 @export var fragment_count: int = 0
+## Shrapnel: time fuse in seconds after launch (airburst). 0 = bursts on impact instead.
+@export var fuse_time: float = 0.0
+## Shrapnel: speed each fragment gains from the burst, in m/s, added to the shell's velocity.
+@export var fragment_speed_mps: float = 60.0
+## Shrapnel: full width of the fragment cone in degrees, centred on the shell's heading (airburst)
+## or on the surface normal (impact burst).
+@export var fragment_cone_deg: float = 60.0
+@export var fragment_mass_kg: float = 0.05
 ## Multiplier applied to incendiary damage per unit of rain intensity (0..1).
 @export var rain_penalty: float = 0.0
