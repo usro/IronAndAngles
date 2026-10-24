@@ -4,7 +4,7 @@ extends CanvasLayer
 ## fire-control plate (bottom left) with elevation dial, charge column, ammo and reload bar,
 ## a key strip and the end-of-battle stamp. Only reads the sim; battle.gd forwards input.
 
-const KEY_HINTS := [["W/S", "elevation"], ["A/D", "charge"], ["Shift", "fine"], ["Wheel", "elev · +Shift charge"],
+const KEY_HINTS := [["W/S", "elevation"], ["A/D", "charge"], ["Shift", "fine"], ["RMB", "range"],
 	["Space", "fire"], ["Tab", "weapon"], ["R", "ammo"], ["T", "table"], ["F", "computer"], ["G", "relocate"],
 	["X", "split"], ["V", "overview"], ["Esc", "retreat"]]
 
