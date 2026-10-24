@@ -30,7 +30,7 @@ The map is on the left. The **Auction / Shop / Repair** tabs are on the right.
 Other buttons:
 - **Research** (top bar) opens the tech tree. Spend funds to unlock better weapons and ammo, which then appear in the Shop. An **era gate** node moves you into the next era (Industrial → Modern → Experimental).
 - **Repair tab:** fixes battery damage taken in battle.
-- **Save** stores the campaign. Continue it from the main menu.
+- **Autosave:** the campaign saves itself after every purchase, research, auction and battle. **Continue** on the main menu picks up where you left off. **New Campaign** asks before overwriting it.
 
 ---
 

@@ -66,7 +66,21 @@ func _button(parent: Node, text: String, on_press: Callable, variation := &"Menu
 
 
 func _on_new() -> void:
-	GameState.new_game()
+	if not SaveSystem.has_save():
+		_start_new()
+		return
+	var confirm := ConfirmationDialog.new()
+	confirm.title = "New Campaign"
+	confirm.dialog_text = "Start a new campaign?\nYour current campaign's autosave will be overwritten."
+	confirm.ok_button_text = "Start new"
+	confirm.confirmed.connect(_start_new)
+	confirm.canceled.connect(confirm.queue_free)
+	add_child(confirm)
+	confirm.popup_centered()
+
+
+func _start_new() -> void:
+	SaveSystem.start_new_campaign()
 	SceneRouter.goto(SceneRouter.Screen.REGION_MAP)
 
 

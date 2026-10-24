@@ -34,6 +34,7 @@ var _rivals_box: VBoxContainer
 var _auction_scroll: ScrollContainer
 var _shop_box: VBoxContainer
 var _repair_box: VBoxContainer
+var _saved_label: Label
 
 
 func _ready() -> void:
@@ -130,6 +131,11 @@ func _repair(id: StringName, hp: float) -> void:
 
 
 # --- Refresh ---
+
+func _on_game_saved(_slot: int) -> void:
+	_saved_label.text = "AUTOSAVED %s" % Time.get_time_string_from_system().left(5)
+
+
 
 func _on_money_changed(balance: int, _delta: int, _reason: String) -> void:
 	_funds_label.text = Blueprint.money(balance)
@@ -361,7 +367,9 @@ func _build() -> void:
 	top.add_child(spacer)
 	_row_button(top, "Research", _open_research).theme_type_variation = &"PrimaryButton"
 	_row_button(top, "How to Play", func() -> void: add_child(HowToPlayPanel.new()))
-	_row_button(top, "Save", func() -> void: _status_label.text = "Saved" if SaveSystem.save_game() == OK else "Save failed")
+	_saved_label = _label(top, "", &"CaptionLabel")
+	_saved_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	EventBus.game_saved.connect(_on_game_saved)
 	_row_button(top, "Main Menu", SceneRouter.goto.bind(SceneRouter.Screen.MAIN_MENU))
 
 	var body := HBoxContainer.new()
