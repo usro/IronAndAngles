@@ -16,7 +16,7 @@ const ORBITAL_DROP_HEIGHT_M := 400.0
 const ENEMY_STANDOFF_M := 12.0
 const ENEMY_MUZZLE_HEIGHT_M := 2.0
 ## Enemy shells do this share of their ammo's damage (the defender is not a full battery).
-const ENEMY_DAMAGE_SCALE := 0.5
+const ENEMY_DAMAGE_SCALE := 0.35
 ## The defender reloads this many times slower than its weapon's rated reload at difficulty 1,
 ## dropping by ENEMY_RELOAD_PER_DIFFICULTY per step (a lone gun crew, not a full battery).
 const ENEMY_RELOAD_FACTOR := 2.2
@@ -62,6 +62,8 @@ var enemy_ammo: AmmoData
 var enemy_origin_m: Vector2 = Vector2.INF
 var enemy_reload_left: float = 0.0
 var enemy_last_impact_m: Vector2 = Vector2.INF
+## Share of the enemy ammo's damage that reaches the battery.
+var enemy_damage_scale := ENEMY_DAMAGE_SCALE
 
 var _field: Object
 var _rng := RandomNumberGenerator.new()
@@ -178,7 +180,7 @@ func apply_blast(ammo: AmmoData, position_m: Vector2, scale: float = 1.0, enemy:
 			if not m.is_alive():
 				continue
 			var dmg := BattleRules.blast_damage(ammo, BattleRules.distance_to_rect(position_m, m.rect_m()),
-				weather.rain_intensity) * scale * ENEMY_DAMAGE_SCALE
+				weather.rain_intensity) * scale * enemy_damage_scale
 			var lost := minf(dmg, m.health)
 			if lost <= 0.0:
 				continue
