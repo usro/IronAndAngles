@@ -196,7 +196,8 @@ func step() -> Array[Dictionary]:
 	var from := Vector2(ox, oy)
 	var to := Vector2(_px, _py)
 	var hit: Dictionary = _hit_test.call(from, to) if _hit_test.is_valid() else {}
-	if not hit.is_empty():
+	# Terrain.raycast always returns a dictionary and flags misses with "hit": false.
+	if not hit.is_empty() and hit.get("hit", true):
 		var hit_pos: Vector2 = hit["position"]
 		var seg := from.distance_to(to)
 		var f := 1.0 if seg <= 0.0 else clampf(from.distance_to(hit_pos) / seg, 0.0, 1.0)
