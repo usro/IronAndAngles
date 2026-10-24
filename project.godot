@@ -23,6 +23,10 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[gui]
+
+theme/custom="res://themes/blueprint_theme.tres"
+
 [input]
 
 aim_up={
@@ -86,6 +90,8 @@ retreat={
 3d/physics_engine="Jolt Physics"
 
 [rendering]
+
+environment/defaults/default_clear_color=Color(0.03137255, 0.101960786, 0.2, 1)
 
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"

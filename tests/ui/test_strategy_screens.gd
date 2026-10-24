@@ -42,7 +42,7 @@ func test_results_screen_shows_settlement() -> void:
 	tree.root.add_child(screen)
 	await tree.process_frame
 	var texts := _label_texts(screen)
-	assert_true(texts.any(func(t): return t.begins_with("Payout: 1500")), "payout line")
+	assert_true(texts.has("Payout") and texts.has("+1,500"), "payout line")
 	assert_true(texts.any(func(t): return t.contains("75% accuracy")), "accuracy line")
 	screen.queue_free()
 	await tree.process_frame

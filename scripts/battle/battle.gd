@@ -1,6 +1,6 @@
 extends Node2D
 ## Battle scene: builds the field from GameState.current_plot, runs a BattleSim, forwards input
-## and draws its state. Plain shapes for now; the UI and FX sessions dress it up.
+## and draws its state as blueprint line art (LauncherArt, BattleArt); the FX session adds effects.
 ##
 ## Ends with the Battle -> Results contract: BattleSim.commit() (EventBus.battle_ended +
 ## GameState.apply_battle_result), then SceneRouter.goto(RESULTS).
@@ -20,13 +20,14 @@ const WHEEL_STEP_DEG := 0.5
 const WHEEL_STEP_CHARGE := 0.01
 const MAX_FRAME_DELTA_S := 0.1
 
-const SKY_COLOR := Color(0.04, 0.09, 0.18)
-const TARGET_COLOR := Color(0.85, 0.55, 0.25)
-const MOUNT_COLOR := Color(0.75, 0.9, 1.0)
-const SELECTED_COLOR := Color(1.0, 0.95, 0.4)
-const DEAD_COLOR := Color(0.3, 0.3, 0.35)
-const PLAYER_SHELL_COLOR := Color(1.0, 0.95, 0.5)
-const ENEMY_SHELL_COLOR := Color(1.0, 0.35, 0.3)
+const SKY_SHADER := preload("res://scripts/ui/blueprint_sky.gdshader")
+const MOUNT_COLOR := Blueprint.INK
+const SELECTED_COLOR := Blueprint.AMBER
+const DEAD_COLOR := Color(0.45, 0.55, 0.68, 0.6)
+const PLAYER_SHELL_COLOR := Blueprint.INK
+const ENEMY_SHELL_COLOR := Blueprint.RED
+## Range marks along the ground, measured from the battery.
+const RANGE_MARK_STEP_M := 50.0
 
 var sim: BattleSim
 var terrain: Terrain
@@ -34,6 +35,7 @@ var camera: Camera2D
 var hud: BattleHud
 
 var _overlay: Node2D
+var _sky: ColorRect
 var _overview := false
 var _hold_left := 0.0
 var _end_left := -1.0
@@ -47,6 +49,8 @@ var _ghost_trail := PackedVector2Array()
 var _ghost_label := ""
 ## ShellFlight -> "elev / charge" text captured at launch (player shells only).
 var _launch_labels: Dictionary = {}
+## Enemy ShellFlights, remembered at launch so their trails stay red after they settle.
+var _enemy_flights: Dictionary = {}
 
 
 func _ready() -> void:
@@ -64,11 +68,13 @@ func _ready() -> void:
 	var sky_layer := CanvasLayer.new()
 	sky_layer.layer = -1
 	add_child(sky_layer)
-	var sky := ColorRect.new()
-	sky.color = SKY_COLOR
-	sky.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sky_layer.add_child(sky)
+	_sky = ColorRect.new()
+	var sky_mat := ShaderMaterial.new()
+	sky_mat.shader = SKY_SHADER
+	_sky.material = sky_mat
+	_sky.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sky_layer.add_child(_sky)
 
 	terrain = Terrain.new()
 	add_child(terrain)
@@ -106,6 +112,7 @@ func _process(delta: float) -> void:
 	_update_trails()
 	_update_blasts(delta)
 	_update_camera(delta)
+	_update_sky()
 	hud.refresh(sim)
 	_overlay.queue_redraw()
 
@@ -166,10 +173,13 @@ func _wheel(dir: int, shift: bool) -> void:
 
 func _on_shell_launched(flight: ShellFlight, enemy: bool) -> void:
 	_trails[flight] = PackedVector2Array([flight.position_m])
+	if enemy:
+		_enemy_flights[flight] = true
 	_hold_left = CAMERA_HOLD_S
 	var m := sim.selected_mount()
 	if not enemy and m and not m.is_orbital():
 		_launch_labels[flight] = "last: %.1f° / %.1f%%" % [m.elevation_deg, m.charge * 100.0]
+		hud.note_shot(sim.selected, m.elevation_deg, m.charge)
 
 
 func _on_blast(position_m: Vector2, radius_m: float, kind: StringName) -> void:
@@ -199,6 +209,14 @@ func _update_camera(delta: float) -> void:
 	var target_zoom := _zoom_for(rect)
 	camera.position = camera.position.lerp(GameConstants.meters_to_pixels(rect.get_center()), k)
 	camera.zoom = camera.zoom.lerp(target_zoom, k)
+
+
+func _update_sky() -> void:
+	var mat := _sky.material as ShaderMaterial
+	mat.set_shader_parameter("view_size_px", get_viewport_rect().size)
+	mat.set_shader_parameter("camera_center_px", camera.get_screen_center_position())
+	mat.set_shader_parameter("zoom", camera.zoom.x)
+	mat.set_shader_parameter("bedrock_y_px", sim.bounds_m().end.y * GameConstants.PIXELS_PER_METER)
 
 
 func _snap_camera() -> void:
@@ -263,6 +281,7 @@ func _update_trails() -> void:
 					_ghost_trail = _trails[f]
 					_ghost_label = _launch_labels[f]
 				_launch_labels.erase(f)
+				_enemy_flights.erase(f)
 				_trails.erase(f)
 
 
@@ -276,30 +295,31 @@ func _draw_overlay() -> void:
 	var px := GameConstants.PIXELS_PER_METER
 	var line_w := 1.5 / camera.zoom.x
 
+	_range_marks(line_w)
+
 	for t in sim.targets:
 		var r := _px_rect(t.rect_m())
-		if t.is_destroyed():
-			_overlay.draw_rect(r, DEAD_COLOR)
-			_overlay.draw_line(r.position, r.end, TARGET_COLOR, line_w)
-			_overlay.draw_line(Vector2(r.position.x, r.end.y), Vector2(r.end.x, r.position.y), TARGET_COLOR, line_w)
-		else:
-			_overlay.draw_rect(r, TARGET_COLOR)
-			_health_bar(r, t.health / t.max_health)
+		BattleArt.draw_target(_overlay, r, line_w, t.is_destroyed())
+		if not t.is_destroyed():
+			BattleArt.draw_health(_overlay, r, t.health / t.max_health, 0.4 * px, Blueprint.RED)
 
 	for i in sim.mounts.size():
 		var m := sim.mounts[i]
 		var r := _px_rect(m.rect_m())
 		var col := DEAD_COLOR if not m.is_alive() else (SELECTED_COLOR if i == sim.selected else MOUNT_COLOR)
-		_overlay.draw_rect(r, col)
-		_health_bar(r, m.health / m.weapon.max_health)
-		if m.is_alive() and not m.is_orbital():
-			var dir := Vector2(cos(deg_to_rad(m.elevation_deg)), -sin(deg_to_rad(m.elevation_deg)))
-			var muzzle := m.muzzle_m() * px
-			_overlay.draw_line(muzzle, muzzle + dir * 4.0 * px, col, 3.0 / camera.zoom.x)
+		LauncherArt.draw_data(_overlay, m.weapon, m.position_m * px, px, m.elevation_deg, col,
+			Color(Blueprint.PAPER_DARK, 0.85), line_w)
+		BattleArt.draw_health(_overlay, Rect2(r.position - Vector2(0, 2.0 * px), r.size), m.health / m.weapon.max_health,
+			0.35 * px, Blueprint.LINE)
+		if i == sim.selected and m.is_alive():
+			var tip := Vector2(r.get_center().x, r.position.y - 3.6 * px)
+			_overlay.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-0.6, -0.9) * px,
+				tip + Vector2(0.6, -0.9) * px]), SELECTED_COLOR)
 
-	if sim.enemy_origin_m != Vector2.INF:
-		var e := sim.enemy_origin_m * px
-		_overlay.draw_rect(Rect2(e - Vector2(1.5, -0.5) * px, Vector2(3.0, 2.0) * px), ENEMY_SHELL_COLOR)
+	if sim.enemy_origin_m != Vector2.INF and sim.enemy_weapon:
+		var ground := sim.enemy_origin_m + Vector2(0.0, 2.0)
+		LauncherArt.draw_data(_overlay, sim.enemy_weapon, ground * px, px, 50.0, ENEMY_SHELL_COLOR,
+			BattleArt.ENEMY_FILL, line_w, -1)
 
 	var sel := sim.selected_mount()
 	if sel and sel.is_orbital() and sel.is_alive():
@@ -311,48 +331,57 @@ func _draw_overlay() -> void:
 		var ghost := PackedVector2Array()
 		for p in _ghost_trail:
 			ghost.append(p * px)
-		_overlay.draw_polyline(ghost, Color(PLAYER_SHELL_COLOR, 0.2), line_w)
+		BattleArt.draw_dashed_polyline(_overlay, ghost, Color(Blueprint.AMBER, 0.45), line_w, 1.2 * px, 0.8 * px)
 		var end := ghost[ghost.size() - 1]
-		_overlay.draw_arc(end, 1.5 * px, 0.0, TAU, 20, Color(PLAYER_SHELL_COLOR, 0.5), line_w)
-		var font_size := roundi(14.0 / camera.zoom.x)
-		_overlay.draw_string(ThemeDB.fallback_font, end + Vector2(-3.0 * px, -2.5 * px), _ghost_label,
-				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(PLAYER_SHELL_COLOR, 0.7))
+		BattleArt.draw_crosshair(_overlay, end, 1.5 * px, Color(Blueprint.AMBER, 0.75), line_w)
+		var font_size := roundi(13.0 / camera.zoom.x)
+		_overlay.draw_string(Blueprint.FONT_MONO_BOLD, end + Vector2(-3.0 * px, -3.0 * px), _ghost_label,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(Blueprint.AMBER, 0.85))
 
 	for f: ShellFlight in _trails:
 		var trail: PackedVector2Array = _trails[f]
-		var col := ENEMY_SHELL_COLOR if sim.is_enemy_flight(f) else PLAYER_SHELL_COLOR
+		var col := ENEMY_SHELL_COLOR if _enemy_flights.has(f) or sim.is_enemy_flight(f) else PLAYER_SHELL_COLOR
 		if trail.size() >= 2:
 			var pts := PackedVector2Array()
 			for p in trail:
 				pts.append(p * px)
-			_overlay.draw_polyline(pts, Color(col, 0.5), line_w)
+			_overlay.draw_polyline(pts, Color(col, 0.55), line_w)
 	for f in sim.flights:
 		var col := ENEMY_SHELL_COLOR if sim.is_enemy_flight(f) else PLAYER_SHELL_COLOR
 		if not f.is_finished:
-			_overlay.draw_circle(f.get_render_position() * px, maxf(0.4 * px, 3.0 / camera.zoom.x), col)
+			var trail: PackedVector2Array = _trails.get(f, PackedVector2Array())
+			var vel := trail[trail.size() - 1] - trail[trail.size() - 2] if trail.size() >= 2 else Vector2.ZERO
+			BattleArt.draw_shell(_overlay, f.get_render_position() * px, vel, maxf(0.4 * px, 3.0 / camera.zoom.x), col)
 		for frag in f.fragments:
 			if not frag.is_finished:
 				_overlay.draw_circle(frag.get_render_position() * px, 1.5 / camera.zoom.x, col)
 
 	for b in _blasts:
 		var k: float = b.age / BLAST_LIFETIME_S
-		var col := Color(1.0, 0.7, 0.3, 1.0 - k) if b.kind != &"bounce" else Color(0.8, 0.8, 0.8, 1.0 - k)
-		_overlay.draw_arc(b.position * px, b.radius * px * (0.4 + 0.6 * k), 0.0, TAU, 32, col, 2.0 / camera.zoom.x)
+		BattleArt.draw_blast(_overlay, b.position * px, b.radius * px, k, b.kind, 2.0 / camera.zoom.x)
 
 
-func _health_bar(r: Rect2, fraction: float) -> void:
-	var h := 0.4 * GameConstants.PIXELS_PER_METER
-	var bar := Rect2(r.position - Vector2(0, h * 2.0), Vector2(r.size.x, h))
-	_overlay.draw_rect(bar, Color(0.1, 0.1, 0.1))
-	_overlay.draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(fraction, 0.0, 1.0), h)),
-		Color(0.4, 0.95, 0.4))
+## Distance ticks along the ground every RANGE_MARK_STEP_M from the battery, like a survey line.
+func _range_marks(line_w: float) -> void:
+	var px := GameConstants.PIXELS_PER_METER
+	var origin := sim.battery_position_m().x
+	var far := sim.target_zone_center_m().x + 40.0
+	var font_size := roundi(11.0 / camera.zoom.x)
+	var x := origin + RANGE_MARK_STEP_M
+	while x < far:
+		var ground := Vector2(x, sim.map.surface_height_at(x)) * px
+		var col := Color(Blueprint.LINE, 0.55)
+		_overlay.draw_line(ground + Vector2(0, -0.5 * px), ground + Vector2(0, -2.5 * px), col, line_w)
+		_overlay.draw_string(Blueprint.FONT_MONO, ground + Vector2(1.0 / camera.zoom.x, -2.8 * px),
+			"%d m" % roundi(x - origin), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, col)
+		x += RANGE_MARK_STEP_M
 
 
 func _strike_marker(x_m: float, col: Color, width: float) -> void:
 	var px := GameConstants.PIXELS_PER_METER
 	var ground := sim.map.surface_height_at(x_m)
 	_overlay.draw_dashed_line(Vector2(x_m, ground - 60.0) * px, Vector2(x_m, ground) * px, col, width, 2.0 * px)
-	_overlay.draw_arc(Vector2(x_m, ground) * px, 2.0 * px, 0.0, TAU, 24, col, width)
+	BattleArt.draw_crosshair(_overlay, Vector2(x_m, ground) * px, 2.0 * px, col, width)
 
 
 static func _px_rect(r: Rect2) -> Rect2:
