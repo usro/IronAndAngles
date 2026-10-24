@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"trebuchet"
+display_name = "Trebuchet"
+description = "Counterweight siege engine. High arc, slow, and the wind has opinions."
+era = 0
+launcher_type = 0
+purchase_cost = 0
+repair_cost_per_hp = 2
+max_health = 120.0
+elevation_min_deg = 30.0
+elevation_max_deg = 70.0
+muzzle_velocity_min = 25.0
+muzzle_velocity_max = 55.0
+spread_deg = 1.5
+reload_time = 12.0
+allowed_ammo = Array[StringName]([&"stone_ball"])
