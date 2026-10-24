@@ -21,6 +21,8 @@ signal weather_changed(weather: WeatherState)
 signal shot_fired(weapon_id: StringName, ammo_id: StringName, cost: int)
 ## position is in world meters.
 signal projectile_impacted(position: Vector2, ammo_id: StringName)
+## A shell bounced off the ground (position in world meters). It keeps flying.
+signal projectile_bounced(position: Vector2, ammo_id: StringName)
 signal terrain_carved(position: Vector2, radius_m: float)
 signal target_hit(target_id: StringName, damage: float)
 signal target_destroyed(target_id: StringName)
