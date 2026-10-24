@@ -22,6 +22,7 @@ var _lot_title: Label
 var _lot_brief: Label
 var _lot_specs: Dictionary = {}  # spec name -> value Label
 var _my_bid_label: Label
+var _advice_box: VBoxContainer
 var _bid_spin: SpinBox
 var _bid_button: Button
 var _resolve_button: Button
@@ -186,7 +187,9 @@ func _refresh_auction() -> void:
 		_lot_specs["RANGE"].text = "%.0f m" % p.target_distance_m
 		_bid_spin.min_value = c.reserve_price
 		_bid_spin.max_value = maxi(c.reserve_price, GameState.player.money)
+		_show_advice(not resolved)
 	else:
+		_clear(_advice_box)
 		_lot_title.text = "No contracts on offer." if auction.lots.is_empty() else "Select a plot on the map."
 		_lot_brief.text = ""
 		for k in _lot_specs:
@@ -224,6 +227,57 @@ func _refresh_auction() -> void:
 		var amount := _label(row, Blueprint.money(funds), &"MonoLabel")
 		amount.custom_minimum_size = Vector2(64, 0)
 		amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+
+
+## The bid advisor block on the Selected lot card.
+func _show_advice(bidding_open: bool) -> void:
+	_clear(_advice_box)
+	var rival_funds := {}
+	for rival in _controller.rivals:
+		rival_funds[rival.id] = _controller.ledger.money(rival.id)
+	var a := BidAdvisor.advise(_selected, _controller.auction.lots, GameState.player, _controller.rivals,
+		rival_funds, DataRegistry.weapons, DataRegistry.ammo)
+	_advice_box.add_child(HSeparator.new())
+	_label(_advice_box, "BID ADVISOR", &"SectionLabel")
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 0)
+	_advice_box.add_child(grid)
+	if a.can_shoot():
+		_advice_row(grid, "Shells (est.)", "≈ %s   (%s if every shot hits, %s)" % [Blueprint.money(a.shell_cost),
+			Blueprint.money(a.par_cost), a.shooter])
+		_advice_row(grid, "Break-even bid", Blueprint.money(a.break_even))
+	var suggest_row := HBoxContainer.new()
+	_label(grid, "Suggested bid", &"CaptionLabel")
+	grid.add_child(suggest_row)
+	var sv := _label(suggest_row, Blueprint.money(a.suggested), &"ValueLabel")
+	sv.add_theme_color_override("font_color", Blueprint.AMBER if a.worth_it else Blueprint.RED)
+	if bidding_open and a.suggested <= GameState.player.money:
+		_chip(suggest_row, "Use", func() -> void: _bid_spin.value = a.suggested)
+	for e in a.rivals:
+		var text: String
+		if not e.can_bid():
+			text = "can't meet the reserve"
+		else:
+			text = "%s–%s%s" % [Blueprint.money(e.low), Blueprint.money(e.high), "  · favourite terrain" if e.prefers_terrain else ""]
+			text += "  · LIKELY HERE" if e.likely else "  · probably bids elsewhere"
+			text += "  · sits out %d%%" % roundi(e.pass_chance * 100.0)
+		var value := _advice_row(grid, e.rival.display_name, text)
+		value.add_theme_color_override("font_color", Blueprint.AMBER if e.likely and e.can_bid() else Blueprint.TEXT_DIM)
+	var verdict := _label(_advice_box, a.verdict, &"BodyLabel")
+	verdict.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	verdict.custom_minimum_size = Vector2(420, 0)
+	verdict.add_theme_color_override("font_color", Blueprint.LINE if a.worth_it else Blueprint.RED)
+
+
+func _advice_row(grid: GridContainer, key: String, value: String) -> Label:
+	_label(grid, key, &"CaptionLabel")
+	var v := _label(grid, value, &"MonoLabel")
+	v.add_theme_font_size_override("font_size", 12)
+	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return v
 
 
 func _refresh_store() -> void:
@@ -500,6 +554,9 @@ func _build_auction_tab() -> Control:
 		if key == "PAYOUT":
 			value.add_theme_color_override("font_color", Blueprint.AMBER)
 		_lot_specs[key] = value
+	_advice_box = VBoxContainer.new()
+	_advice_box.add_theme_constant_override("separation", 2)
+	lot_box.add_child(_advice_box)
 	_my_bid_label = _label(lot_box, "", &"StatusLabel")
 
 	var bid_row := HBoxContainer.new()

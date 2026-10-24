@@ -19,6 +19,11 @@ The map is on the left. The **Auction / Shop / Battery** tabs are on the right.
    - **Reserve:** the minimum bid.
    - **Plot:** the terrain type, your height advantage, and the **distance to the targets**. Closer and higher is easier.
    - **Difficulty:** how accurately the enemy fires back.
+   The card also has a **Bid advisor**:
+   - **Shells (est.):** what your *deployed* guns will probably spend on shells here (assuming about 40% of shots hit), and what it would cost if every shot hit.
+   - **Break-even bid:** bid more than this and you lose money even if you win the battle.
+   - **Rivals:** each rival's likely bid range, whether this is the contract they're probably after (they each bid on one contract a week), and how often they sit a week out.
+   - **Suggested bid:** enough to beat the likely rivals. Click **Use** to put it in the bid box. It turns red when winning isn't worth it.
 2. **Bid.** Set an amount in the number box and click **Place sealed bid**. You get one bid per week. Bidding again replaces your old bid.
 3. **Close bidding.** The rivals (shown under "Rival war chests") bid too. The highest bid wins and pays it **up front**. If bids tie, the earlier bid wins.
 4. Then:
